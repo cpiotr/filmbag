@@ -1,6 +1,6 @@
-package pl.ciruk.filmbag
+package pl.ciruk.filmbag.boundary
 
-data class Film(
+data class FilmRequest(
         val title: String,
         val year: Int,
         val plot: String? = null,
@@ -8,7 +8,7 @@ data class Film(
         val poster: String? = null,
         val score: Double,
         val numberOfScores: Int = 0,
-        val scores: List<Score> = listOf(),
+        val scores: List<ScoreRequest> = listOf(),
         val genres: List<String> = listOf())
 
-data class Score (val grade: Double, val quantity: Long)
+data class ScoreRequest (val grade: Double, val quantity: Long)
