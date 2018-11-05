@@ -36,11 +36,12 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
     compile('org.springframework.boot:spring-boot-starter-data-jpa')
-//    compile("mysql:mysql-connector-java")
+    compile("mysql:mysql-connector-java")
 
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-mustache')
@@ -53,10 +54,13 @@ dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     compile("org.jetbrains.kotlin:kotlin-reflect")
 
+    compile "com.github.kittinunf.fuel:fuel:1.15.1"
+    compile "com.github.kittinunf.fuel:fuel-jackson:1.15.1"
+
     testCompile('org.springframework.boot:spring-boot-starter-test')
     testImplementation('org.junit.jupiter:junit-jupiter-api')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine')
-    testCompile group: 'com.h2database', name: 'h2', version: '1.4.197'
+    compile group: 'com.h2database', name: 'h2', version: '1.4.197'
 }
 
 compileKotlin {
