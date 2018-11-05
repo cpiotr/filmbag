@@ -1,0 +1,1 @@
+ALTER TABLE film ADD COLUMN hash bigint DEFAULT -1;
