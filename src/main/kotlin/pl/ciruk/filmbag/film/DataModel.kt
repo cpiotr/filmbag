@@ -29,33 +29,3 @@ data class Score (
 data class Genre (
         @Id @GeneratedValue val id: Long? = null,
         val name: String)
-
-fun FilmRequest.toFilm(): Film {
-    val scores = this.scores.map { Score(grade = it.grade, quantity = it.quantity) }.toSet()
-    val genres = this.genres.map { Genre(name = it) }.toSet()
-    return Film(
-            title = this.title,
-            year = this.year,
-            link = this.link,
-            score = this.score,
-            scores = scores,
-            genres = genres,
-            plot = this.plot,
-            poster = this.poster
-
-    )
-}
-
-fun Film.toRequest(): FilmRequest {
-    return FilmRequest(
-            title = this.title,
-            year = this.year,
-            link = this.link,
-            score = this.score,
-            numberOfScores = this.scores.size,
-            scores = this.scores.map { ScoreRequest(it.grade, it.quantity) }.toList(),
-            genres = this.genres.map { it.name }.toList(),
-            plot = this.plot,
-            poster = this.poster
-    )
-}

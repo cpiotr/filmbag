@@ -1,23 +1,26 @@
 package pl.ciruk.filmbag.boundary
 
-import org.springframework.stereotype.Component
-import pl.ciruk.filmbag.film.*
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import pl.ciruk.filmbag.film.FilmService
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 
-@Component
+@Service
+@Transactional
 @Path("/films")
-class FilmResource(val filmService: FilmService) {
+class FilmResource(private val requestAdapter: RequestAdapter, private val filmService: FilmService) {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     fun findAll(): List<FilmRequest> {
         return filmService.findAll()
-                .map { it.toRequest() }
+                .map { requestAdapter.convertToRequest(it) }
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     fun create(filmRequest: FilmRequest) {
-        filmService.store(filmRequest.toFilm())
+        val film = requestAdapter.convertToFilm(filmRequest)
+        filmService.store(film)
     }
 }
