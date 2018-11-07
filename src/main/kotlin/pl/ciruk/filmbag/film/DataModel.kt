@@ -1,9 +1,8 @@
 package pl.ciruk.filmbag.film
 
-import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.boundary.ScoreRequest
 import java.util.*
 import javax.persistence.*
+import javax.persistence.CascadeType.ALL
 
 @Entity
 data class Film(
@@ -14,18 +13,17 @@ data class Film(
         val link: String,
         val poster: String? = null,
         val score: Double,
-        @OneToMany(mappedBy = "film") val scores: Set<Score> = setOf(),
+        @OneToMany(cascade = [ALL]) @JoinColumn(name = "film_id") val scores: Set<Score> = setOf(),
         @ManyToMany val genres: Set<Genre> = setOf(),
-        val hash: Int = Objects.hash(title, year, genres))
+        val hash: Int = Objects.hash(title, year, genres.map { it.name }))
 
 @Entity
-data class Score (
+data class Score(
         @Id @GeneratedValue val id: Long? = null,
         val grade: Double,
-        val quantity: Long,
-        @ManyToOne @JoinColumn(name ="film_id") val film: Film? = null)
+        val quantity: Long)
 
 @Entity
-data class Genre (
+data class Genre(
         @Id @GeneratedValue val id: Long? = null,
         val name: String)

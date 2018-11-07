@@ -2,14 +2,16 @@ package pl.ciruk.filmbag.boundary
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import pl.ciruk.filmbag.film.*
+import pl.ciruk.filmbag.film.Film
+import pl.ciruk.filmbag.film.GenreService
+import pl.ciruk.filmbag.film.Score
 
 @Service
 @Transactional
 class RequestAdapter(private val genreService: GenreService) {
     fun convertToFilm(filmRequest: FilmRequest): Film {
-        val scores = filmRequest.scores.map { Score(grade = it.grade, quantity = it.quantity) }.toSet()
         val genres = genreService.merge(filmRequest.genres)
+        val scores = filmRequest.scores.map { Score(grade = it.grade, quantity = it.quantity) }.toSet()
         return Film(
                 title = filmRequest.title,
                 year = filmRequest.year,
