@@ -11,18 +11,17 @@ import pl.ciruk.filmbag.film.Score
 class RequestAdapter(private val genreService: GenreService) {
     fun convertToFilm(filmRequest: FilmRequest): Film {
         val genres = genreService.merge(filmRequest.genres)
-        val scores = filmRequest.scores.map { Score(grade = it.grade, quantity = it.quantity) }.toSet()
-        return Film(
+        val film = Film(
                 title = filmRequest.title,
                 year = filmRequest.year,
                 link = filmRequest.link,
                 score = filmRequest.score,
-                scores = scores,
                 genres = genres,
                 plot = filmRequest.plot,
                 poster = filmRequest.poster
-
         )
+        filmRequest.scores.forEach { film.addScore(it.grade, it.quantity) }
+        return film
     }
 
     fun convertToRequest(film: Film): FilmRequest {
@@ -32,8 +31,8 @@ class RequestAdapter(private val genreService: GenreService) {
                 link = film.link,
                 score = film.score,
                 numberOfScores = film.scores.size,
-                scores = film.scores.map { ScoreRequest(it.grade, it.quantity) }.toList(),
-                genres = film.genres.map { it.name }.toList(),
+                scores = film.scores.map { ScoreRequest(it.grade, it.quantity) },
+                genres = film.genres.map { it.name },
                 plot = film.plot,
                 poster = film.poster
         )

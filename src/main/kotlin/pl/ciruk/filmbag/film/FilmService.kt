@@ -7,10 +7,10 @@ import javax.annotation.PostConstruct
 @Service
 @Transactional
 class FilmService(private val repository: FilmRepository) {
-    private val recordedFilms = HashSet<Int>()
+    private val existingFilmHashes = HashSet<Int>()
 
     fun store(film: Film) {
-        if (recordedFilms.contains(film.hash)) {
+        if (existingFilmHashes.contains(film.hash)) {
             return
         }
 
@@ -18,7 +18,7 @@ class FilmService(private val repository: FilmRepository) {
     }
 
     fun storeAll(films: List<Film>) {
-        val notRecorded = films.filterNot { recordedFilms.contains(it.hash) }
+        val notRecorded = films.filterNot { existingFilmHashes.contains(it.hash) }
         repository.saveAll(notRecorded)
     }
 
@@ -30,6 +30,6 @@ class FilmService(private val repository: FilmRepository) {
     fun load() {
         repository.findAll()
                 .map { it.hash }
-                .forEach { recordedFilms.add(it) }
+                .forEach { existingFilmHashes.add(it) }
     }
 }
