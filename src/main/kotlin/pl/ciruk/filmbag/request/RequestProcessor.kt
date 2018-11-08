@@ -1,15 +1,27 @@
-package pl.ciruk.filmbag.boundary
+package pl.ciruk.filmbag.request
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.film.Film
+import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.GenreService
-import pl.ciruk.filmbag.film.Score
 
 @Service
 @Transactional
-class RequestAdapter(private val genreService: GenreService) {
-    fun convertToFilm(filmRequest: FilmRequest): Film {
+class RequestProcessor(private val genreService: GenreService, private val filmService: FilmService) {
+    fun store(filmRequest: FilmRequest) {
+        val film = convertToFilm(filmRequest)
+        filmService.store(film)
+    }
+
+    fun storeAll(filmRequests: List<FilmRequest>) {
+        val genresFromRequests = filmRequests.flatMap { it.genres }
+        genreService.merge(genresFromRequests)
+        filmRequests.forEach { store(it)}
+    }
+
+    private fun convertToFilm(filmRequest: FilmRequest): Film {
         val genres = genreService.merge(filmRequest.genres)
         val film = Film(
                 title = filmRequest.title,
@@ -23,19 +35,4 @@ class RequestAdapter(private val genreService: GenreService) {
         filmRequest.scores.forEach { film.addScore(it.grade, it.quantity) }
         return film
     }
-
-    fun convertToRequest(film: Film): FilmRequest {
-        return FilmRequest(
-                title = film.title,
-                year = film.year,
-                link = film.link,
-                score = film.score,
-                numberOfScores = film.scores.size,
-                scores = film.scores.map { ScoreRequest(it.grade, it.quantity) },
-                genres = film.genres.map { it.name },
-                plot = film.plot,
-                poster = film.poster
-        )
-    }
 }
-
