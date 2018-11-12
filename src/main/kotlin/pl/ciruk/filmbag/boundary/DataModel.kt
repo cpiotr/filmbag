@@ -8,7 +8,7 @@ data class FilmRequest(
         val poster: String? = null,
         val score: Double,
         val numberOfScores: Int = 0,
-        val scores: List<ScoreRequest> = listOf(),
-        val genres: List<String> = listOf())
+        val scores: Set<ScoreRequest> = setOf(),
+        val genres: Set<String> = setOf())
 
 data class ScoreRequest (val grade: Double, val quantity: Long)

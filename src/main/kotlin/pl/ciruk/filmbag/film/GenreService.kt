@@ -18,16 +18,16 @@ class GenreService(private val genreRepository: GenreRepository) {
         cacheAll(genreRepository.findAll())
     }
 
-    fun merge(genres: List<String>): Set<Genre> {
+    fun merge(genres: Iterable<String>): Set<Genre> {
         val newGenres = genres.filterNot { genreByName.containsKey(it) }.map { Genre(name = it) }
         val existingGenres = genres.mapNotNull { genreByName[it] }
         return (store(newGenres) + existingGenres).toSet()
     }
 
-    fun store(genres: List<Genre>): Iterable<Genre> {
+    fun store(genres: Iterable<Genre>): Iterable<Genre> {
         val saved = genreRepository.saveAll(genres)
         cacheAll(saved)
-        return saved
+        return saved.toSet()
     }
 
     private fun cacheAll(genres: Iterable<Genre>) {

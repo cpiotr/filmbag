@@ -15,8 +15,8 @@ import javax.ws.rs.core.Response
 class FilmWriteResource(private val requestProcessor: RequestProcessor) {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
-    fun storeIfAbsent(filmRequest: FilmRequest): Response {
-        requestProcessor.store(filmRequest)
+    fun storeIfAbsent(filmRequest: List<FilmRequest>): Response {
+        requestProcessor.storeAll(filmRequest)
         return Response.accepted().build()
     }
 }
