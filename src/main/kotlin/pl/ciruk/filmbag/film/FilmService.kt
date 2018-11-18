@@ -10,7 +10,8 @@ class FilmService(private val repository: FilmRepository) {
     private val existingFilmHashes = HashSet<Int>()
 
     fun store(film: Film) {
-        if (existingFilmHashes.contains(film.hash)) {
+        val added = existingFilmHashes.add(film.hash)
+        if (!added) {
             return
         }
 

@@ -7,13 +7,20 @@ import pl.ciruk.filmbag.boundary.FilmRequest
 import javax.annotation.PostConstruct
 
 @Service
-class DataLoader(private val requestProcessor: RequestProcessor) {
+class DataLoader(
+        private val requestProcessor: RequestProcessor,
+        private val requestRecorder: RequestRecorder) {
     @PostConstruct
     fun load() {
         generateSequenceOfFilms()
                 .take(30)
                 .chunked(10)
-                .forEach { requestProcessor.storeAll(it) }
+                .forEach(::process)
+    }
+
+    fun process(filmRequests: List<FilmRequest>) {
+        requestRecorder.record(filmRequests)
+        requestProcessor.storeAll(filmRequests)
     }
 
     fun generateSequenceOfFilms(): Sequence<FilmRequest> {
