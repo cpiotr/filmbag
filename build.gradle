@@ -25,7 +25,6 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
 group 'pl.ciruk'
-version '1.0-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
@@ -82,3 +81,5 @@ flyway {
     url = 'jdbc:mysql://172.17.0.2:3306/testdb'
     user = 'root'
 }
+
+println "Building filmbag $version"
