@@ -6,6 +6,7 @@ VOLUME /tmp
 ARG APP_VERSION=0.0.1
 ENV APP_VERSION=${APP_VERSION}
 ENV DB_HOST 172.17.0.2
+ENV FILM_PROVIDER_URL http://192.168.178.206:8080/resources/suggestions/1
 
 ENV ROOT_LOGGING_LEVEL=INFO
 ENV APP_LOGGING_LEVEL=INFO
@@ -29,7 +30,7 @@ ENV JVM_OPTS="-Xmx1G -Xms1G \
 
 COPY ./ /filmbag/
 WORKDIR /filmbag
-RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -i'
+RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -i -x check'
 
 EXPOSE 12345
 EXPOSE 12340
@@ -39,6 +40,7 @@ CMD sh -c "java \
 		-Dlogging.level.root=$ROOT_LOGGING_LEVEL \
 		-Dlogging.level.pl.ciruk=$APP_LOGGING_LEVEL \
 		-Dserver.port=12345 \
+		-Dexternal.provider.filmrequest.url=$FILM_PROVIDER_URL \
 		$JMX_OPTS \
 		$JVM_OPTS \
 		-jar ./build/libs/filmbag-$APP_VERSION.jar"
