@@ -81,4 +81,9 @@ flyway {
     user = 'root'
 }
 
+wrapper {
+    gradleVersion = '5.0'
+}
+
+
 println "Building filmbag $version"
