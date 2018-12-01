@@ -30,7 +30,7 @@ ENV JVM_OPTS="-Xmx1G -Xms1G \
 
 COPY ./ /filmbag/
 WORKDIR /filmbag
-RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -i -x check'
+RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -i'
 
 EXPOSE 12345
 EXPOSE 12340
