@@ -3,7 +3,6 @@ package pl.ciruk.filmbag.request
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.fuel.jackson.responseObject
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -50,9 +49,13 @@ class DataLoader(
         )
     }
 
-    fun <T> FuelError.logAndFallback(list: List<T>): List<T> {
-        log.info("Error while getting films {}/{}", this.response.statusCode, this.response.responseMessage)
-        log.debug("Error details", this)
-        return list
+    companion object {
+        private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+
+        fun <T> FuelError.logAndFallback(list: List<T>): List<T> {
+            log.info("Error while getting films {}/{}", this.response.statusCode, this.response.responseMessage)
+            log.debug("Error details", this)
+            return list
+        }
     }
 }
