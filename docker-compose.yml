@@ -1,0 +1,32 @@
+version: '2'
+services:
+  db:
+    image: mariadb:10.4.0-bionic
+    hostname: filmbag-db
+    volumes:
+      - ./database/create-db.sql:/docker-entrypoint-initdb.d/V000__create_db.sql:ro
+      - ./src/main/resources/db/migration/V001__init.sql:/docker-entrypoint-initdb.d/V001__init.sql:ro
+      - ./src/main/resources/db/migration/V002__hash_in_film.sql:/docker-entrypoint-initdb.d/V002__hash_in_film.sql:ro
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+      - MYSQL_DATABASE=db
+    ports:
+      - "3306:3306"
+  filmbag:
+      build:
+        context: .
+        args:
+          - APP_VERSION=0.0.1
+      hostname: filmbag-app
+      environment:
+        - JMX_PORT=19999
+        - FILM_PROVIDER_URL=http://192.168.178.206:8080/resources/suggestions
+        - JDBC_URL=jdbc:mariadb://filmbag-db:3306/db
+        - APP_LOGGING_LEVEL=INFO
+      ports:
+        - "18080:18080"
+        - "19999:19999"
+      depends_on:
+        - "db"
+      links:
+        - "db:filmbag-db"

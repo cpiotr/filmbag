@@ -3,10 +3,11 @@ package pl.ciruk.filmbag.film
 import java.util.*
 import javax.persistence.*
 import javax.persistence.CascadeType.ALL
+import javax.persistence.GenerationType.SEQUENCE
 
 @Entity
 data class Film(
-        @Id @GeneratedValue val id: Long? = null,
+        @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
         val title: String,
         val year: Int,
         val plot: String? = null,
@@ -42,7 +43,7 @@ data class Film(
 
 @Entity
 data class Score(
-        @Id @GeneratedValue val id: Long? = null,
+        @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
         val grade: Double,
         val quantity: Long,
         @ManyToOne @JoinColumn(name = "film_id") val film: Film? = null) {
@@ -69,5 +70,5 @@ data class Score(
 
 @Entity
 data class Genre(
-        @Id @GeneratedValue val id: Long? = null,
+    @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
         val name: String)
