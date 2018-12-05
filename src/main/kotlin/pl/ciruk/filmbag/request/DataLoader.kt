@@ -14,20 +14,34 @@ import javax.annotation.PostConstruct
 class DataLoader(
         private val requestProcessor: RequestProcessor,
         private val requestRecorder: RequestRecorder,
-        @Value("\${external.provider.filmrequest.url}") private val url: String) {
+        @Value("\${external.provider.filmrequest.url}") private val url: String,
+        @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
     @PostConstruct
     fun load() {
-        log.info("Loading films from: {}", url)
-        generateSequenceOfFilms()
-                .take(5)
-                .flatMap { it.asSequence() }
-                .chunked(10)
-                .forEach(::process)
+        try {
+            loadDataOrThrow()
+        } catch (error: FuelError) {
+            val response = error.response
+            if (response.statusCode > -1) {
+                log.error("Error while loading data: {}/{}", response.statusCode, response.responseMessage)
+            } else {
+                log.error("Error while loading data", error)
+            }
+        }
     }
 
-    fun process(filmRequests: List<FilmRequest>) {
+    private fun loadDataOrThrow() {
+        log.info("Loading data from: {}", url)
+        generateSequenceOfFilms()
+                .flatMap { it.asSequence() }
+                .take(limit)
+                .chunked(10)
+                .forEach(::recordAndStore)
+    }
+
+    fun recordAndStore(filmRequests: List<FilmRequest>) {
         requestRecorder.record(filmRequests)
         requestProcessor.storeAll(filmRequests)
     }
@@ -38,24 +52,15 @@ class DataLoader(
     }
 
     fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
-        val (_, _, result) = "$url/$index"
-                .httpGet()
+        log.debug("Fetch films from {} page", index)
+
+        val (_, _, result) = "$url/$index".httpGet()
                 .timeout(1_000)
                 .timeoutRead(10_000)
                 .responseObject<List<FilmRequest>>()
         return result.fold(
                 { it },
-                { error -> error.logAndFallback(emptyList()) }
+                { error -> throw error }
         )
-    }
-
-    companion object {
-        private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
-
-        fun <T> FuelError.logAndFallback(list: List<T>): List<T> {
-            log.info("Error while getting films {}/{}", this.response.statusCode, this.response.responseMessage)
-            log.debug("Error details", this)
-            return list
-        }
     }
 }
