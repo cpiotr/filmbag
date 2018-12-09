@@ -4,8 +4,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.film.FilmService
-import pl.ciruk.filmbag.request.RequestProcessor
-import javax.ws.rs.*
+import javax.ws.rs.GET
+import javax.ws.rs.Path
+import javax.ws.rs.Produces
 import javax.ws.rs.core.MediaType
 
 @Service

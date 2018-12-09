@@ -1,5 +1,6 @@
 package pl.ciruk.filmbag.film
 
+import java.time.ZonedDateTime
 import java.util.*
 import javax.persistence.*
 import javax.persistence.CascadeType.ALL
@@ -8,6 +9,7 @@ import javax.persistence.GenerationType.SEQUENCE
 @Entity
 data class Film(
         @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
+        val created: ZonedDateTime = ZonedDateTime.now(),
         val title: String,
         val year: Int,
         val plot: String? = null,

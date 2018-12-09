@@ -1,12 +1,10 @@
-version: '2'
+version: '3.4'
 services:
   db:
     image: mariadb:10.4.0-bionic
     hostname: filmbag-db
     volumes:
       - ./database/create-db.sql:/docker-entrypoint-initdb.d/V000__create_db.sql:ro
-      - ./src/main/resources/db/migration/V001__init.sql:/docker-entrypoint-initdb.d/V001__init.sql:ro
-      - ./src/main/resources/db/migration/V002__hash_in_film.sql:/docker-entrypoint-initdb.d/V002__hash_in_film.sql:ro
     environment:
       - MYSQL_ALLOW_EMPTY_PASSWORD=true
       - MYSQL_DATABASE=db
@@ -30,3 +28,4 @@ services:
         - "db"
       links:
         - "db:filmbag-db"
+      command: ["sh", "-c", "./script/depend-on.sh filmbag-db 3306 60 && ./script/init-db.sh && ./script/run-app.sh"]

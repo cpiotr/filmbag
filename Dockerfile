@@ -34,13 +34,23 @@ ENV JVM_OPTS="-Xmx1G -Xms1G \
 	-Xlog:gc:stdout:time"
 
 COPY ./ /filmbag/
-WORKDIR /filmbag
+ARG APP_DIR=/filmbag
+ENV APP_DIR=${APP_DIR}
+WORKDIR $APP_DIR
 RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -i'
 
 EXPOSE ${JMX_PORT}
 EXPOSE ${APP_PORT}
 
-CMD sh -c "java \
+RUN sh -c "apt update && DEBIAN_FRONTEND=noninteractive apt install -y netcat"
+
+CMD sh -c " \
+    ./gradlew flywayMigrate \
+        -i \
+        -Pflyway.url='$JDBC_URL' \
+        -Pflyway.baselineOnMigrate=true \
+    && \
+    java \
 		-Djava.security.egd=file:/dev/./urandom \
 		-Dlogging.level.root=$ROOT_LOGGING_LEVEL \
 		-Dlogging.level.pl.ciruk=$APP_LOGGING_LEVEL \
