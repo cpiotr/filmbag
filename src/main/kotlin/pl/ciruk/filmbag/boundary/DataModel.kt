@@ -1,6 +1,9 @@
 package pl.ciruk.filmbag.boundary
 
+import java.time.ZonedDateTime
+
 data class FilmRequest(
+        val created: ZonedDateTime = ZonedDateTime.now().withFixedOffsetZone(),
         val title: String,
         val year: Int,
         val plot: String? = null,

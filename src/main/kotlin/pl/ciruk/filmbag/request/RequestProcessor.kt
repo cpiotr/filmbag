@@ -24,6 +24,7 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
     private fun convertToFilm(filmRequest: FilmRequest): Film {
         val genres = genreService.merge(filmRequest.genres)
         val film = Film(
+                created = filmRequest.created,
                 title = filmRequest.title,
                 year = filmRequest.year,
                 link = filmRequest.link,

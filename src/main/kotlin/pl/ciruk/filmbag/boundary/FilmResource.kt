@@ -23,6 +23,7 @@ class FilmResource(private val filmService: FilmService) {
 
 fun Film.convertToRequest(): FilmRequest {
     return FilmRequest(
+            created = this.created,
             title = this.title,
             year = this.year,
             link = this.link,
