@@ -3,6 +3,7 @@ package pl.ciruk.filmbag
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -10,6 +11,9 @@ import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
+import org.springframework.data.redis.core.RedisKeyValueAdapter
+import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.data.redis.core.ValueOperations
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.boundary.FilmRequest
@@ -81,8 +85,20 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
 @Configuration
 class TestConfiguration {
     @Bean
-    @Primary
     fun dataLoader(): DataLoader {
         return mock(DataLoader::class.java)
+    }
+
+    @Bean
+    fun redisTemplate(): RedisTemplate<*, *> {
+        val redisTemplate = mock(RedisTemplate::class.java)
+
+        doReturn(mock(ValueOperations::class.java)).`when`(redisTemplate).opsForValue()
+        return redisTemplate
+    }
+
+    @Bean
+    fun redisKeyValueAdapter(): RedisKeyValueAdapter {
+        return mock(RedisKeyValueAdapter::class.java)
     }
 }
