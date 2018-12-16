@@ -7,6 +7,7 @@ ARG APP_VERSION=0.0.1
 ENV APP_VERSION=${APP_VERSION}
 ENV JDBC_URL=jdbc:h2:mem:testdb
 ENV FILM_PROVIDER_URL http://192.168.178.206:8080/resources/suggestions
+ENV REDIS_HOST localhost
 
 ENV ROOT_LOGGING_LEVEL=INFO
 ENV APP_LOGGING_LEVEL=INFO
@@ -56,6 +57,7 @@ CMD sh -c " \
 		-Dlogging.level.pl.ciruk=$APP_LOGGING_LEVEL \
 		-Dserver.port=$APP_PORT \
 		-Dspring.datasource.url=$JDBC_URL \
+		-Dredis.hots=$REDIS_HOST \
 		-Dexternal.provider.filmrequest.url=$FILM_PROVIDER_URL \
 		$JMX_OPTS \
 		$JVM_OPTS \

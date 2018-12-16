@@ -10,6 +10,9 @@ services:
       - MYSQL_DATABASE=db
     ports:
       - "3306:3306"
+  journal:
+    image: redis:5.0.0-alpine
+    hostname: filmbag-redis
   filmbag:
       build:
         context: .
@@ -20,12 +23,15 @@ services:
         - JMX_PORT=19999
         - FILM_PROVIDER_URL=http://192.168.178.206:8080/resources/suggestions
         - JDBC_URL=jdbc:mariadb://filmbag-db:3306/db
+        - REDIS_HOST=filmbag-redis
         - APP_LOGGING_LEVEL=INFO
       ports:
         - "18080:18080"
         - "19999:19999"
       depends_on:
         - "db"
+        - "journal"
       links:
         - "db:filmbag-db"
+        - "journal:filmbag-redis"
       command: ["sh", "-c", "./script/depend-on.sh filmbag-db 3306 60 && ./script/init-db.sh && ./script/run-app.sh"]

@@ -11,6 +11,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
+import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.data.redis.core.RedisKeyValueAdapter
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
@@ -24,7 +25,7 @@ import pl.ciruk.filmbag.request.DataLoader
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        classes = [TestConfiguration::class, FilmBagApplication::class])
+        classes = [FilmBagApplication::class, TestConfiguration::class])
 class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTemplate) {
     @Test
     fun `should get created films`() {
@@ -90,11 +91,18 @@ class TestConfiguration {
     }
 
     @Bean
-    fun redisTemplate(): RedisTemplate<*, *> {
+    @Primary
+    fun redisConnectionFactory(): RedisConnectionFactory {
+        return mock(RedisConnectionFactory::class.java)
+    }
+
+    @Bean
+    @Primary
+    fun redisTemplate(): RedisTemplate<ByteArray, ByteArray> {
         val redisTemplate = mock(RedisTemplate::class.java)
 
         doReturn(mock(ValueOperations::class.java)).`when`(redisTemplate).opsForValue()
-        return redisTemplate
+        return redisTemplate as RedisTemplate<ByteArray, ByteArray>
     }
 
     @Bean
