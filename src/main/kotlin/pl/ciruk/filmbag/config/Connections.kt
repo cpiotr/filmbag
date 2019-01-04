@@ -12,6 +12,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration
 import org.springframework.data.redis.connection.jedis.JedisClientConfiguration
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory
 import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.data.redis.serializer.RedisSerializer
 import redis.clients.jedis.JedisPoolConfig
 import javax.sql.DataSource
 
@@ -60,10 +61,22 @@ class Connections {
     fun redisTemplate(redisConnectionFactory: RedisConnectionFactory): RedisTemplate<ByteArray, ByteArray> {
         val redisTemplate = RedisTemplate<ByteArray, ByteArray>()
         redisTemplate.setConnectionFactory(redisConnectionFactory)
+        redisTemplate.keySerializer = NoopSerializer()
+        redisTemplate.valueSerializer = NoopSerializer()
         return redisTemplate
     }
 
     private fun logConfiguration(name: String, value: String) {
         logger.info("$name: <$value>")
+    }
+
+    class NoopSerializer : RedisSerializer<ByteArray> {
+        override fun serialize(t: ByteArray?): ByteArray? {
+            return t
+        }
+
+        override fun deserialize(bytes: ByteArray?): ByteArray? {
+            return bytes
+        }
     }
 }

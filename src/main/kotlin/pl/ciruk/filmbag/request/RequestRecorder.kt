@@ -1,6 +1,7 @@
 package pl.ciruk.filmbag.request
 
 import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
@@ -24,6 +25,22 @@ class RequestRecorder(private val redisTemplate: RedisTemplate<ByteArray, ByteAr
         logger.info("Record (key={}, size={})", bytesToHex(key), serializedRequest.size)
         redisTemplate.opsForValue()[key] = serializedRequest
     }
+
+    fun replay() {
+        val typeToken : List<FilmRequest> = mutableListOf()
+        val keys = findAllKeys()
+        logger.info("Replaying ${keys.size} requests")
+        redisTemplate.opsForValue()
+                .multiGet(keys)
+                .orEmpty()
+                .map { kryo.readObject(Input(it), typeToken.javaClass) }
+                .map { logger.info("Got ${it.size} film requests") }
+    }
+
+    private fun findAllKeys() = redisTemplate.connectionFactory
+            ?.connection
+            ?.keys("*".toByteArray())
+            .orEmpty()
 
     private fun serialize(films: List<FilmRequest>): ByteArray {
         val output = Output(films.size * 512)

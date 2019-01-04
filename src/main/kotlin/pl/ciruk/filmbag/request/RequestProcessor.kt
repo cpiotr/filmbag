@@ -25,15 +25,15 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
         val genres = genreService.merge(filmRequest.genres)
         val film = Film(
                 created = filmRequest.created,
-                title = filmRequest.title,
-                year = filmRequest.year,
-                link = filmRequest.link,
-                score = filmRequest.score,
+                title = filmRequest.title!!,
+                year = filmRequest.year!!,
+                link = filmRequest.link!!,
+                score = filmRequest.score!!,
                 genres = genres,
                 plot = filmRequest.plot,
                 poster = filmRequest.poster
         )
-        filmRequest.scores.forEach { film.addScore(it.grade, it.quantity) }
+        filmRequest.scores.forEach { film.addScore(it.grade!!, it.quantity!!) }
         return film
     }
 }

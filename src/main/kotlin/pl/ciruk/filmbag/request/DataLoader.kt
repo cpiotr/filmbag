@@ -56,7 +56,7 @@ class DataLoader(
 
         val (_, _, result) = "$url/$index".httpGet()
                 .timeout(1_000)
-                .timeoutRead(10_000)
+                .timeoutRead(30_000)
                 .responseObject<List<FilmRequest>>()
         return result.fold(
                 { it },
