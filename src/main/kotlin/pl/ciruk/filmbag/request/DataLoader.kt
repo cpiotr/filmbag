@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import java.lang.invoke.MethodHandles
-import javax.annotation.PostConstruct
 
 @Service
 class DataLoader(
@@ -18,8 +17,7 @@ class DataLoader(
         @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
-    @PostConstruct
-    fun load() {
+    fun import() {
         try {
             loadDataOrThrow()
         } catch (error: FuelError) {

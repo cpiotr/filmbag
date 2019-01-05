@@ -4,7 +4,8 @@ import org.glassfish.jersey.server.ResourceConfig
 import org.springframework.context.annotation.Configuration
 import pl.ciruk.filmbag.boundary.FilmResource
 import pl.ciruk.filmbag.boundary.FilmWriteResource
-import pl.ciruk.filmbag.boundary.ReplayResource
+import pl.ciruk.filmbag.boundary.ImportResource
+import pl.ciruk.filmbag.boundary.JournalResource
 import javax.ws.rs.ApplicationPath
 
 @Configuration
@@ -12,5 +13,6 @@ import javax.ws.rs.ApplicationPath
 class Jersey : ResourceConfig(
         FilmResource::class.java,
         FilmWriteResource::class.java,
-        ReplayResource::class.java
+        JournalResource::class.java,
+        ImportResource::class.java
 )

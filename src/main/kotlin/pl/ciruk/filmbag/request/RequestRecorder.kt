@@ -34,7 +34,7 @@ class RequestRecorder(private val redisTemplate: RedisTemplate<ByteArray, ByteAr
                 .multiGet(keys)
                 .orEmpty()
                 .map { kryo.readObject(Input(it), typeToken.javaClass) }
-                .map { logger.info("Got ${it.size} film requests") }
+                .forEach { logger.info("Got ${it.size} film requests") }
     }
 
     private fun findAllKeys() = redisTemplate.connectionFactory

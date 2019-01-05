@@ -12,10 +12,10 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
 @Service
-@Transactional
-@Path("/replay")
-class ReplayResource(private val requestRecorder: RequestRecorder) {
+@Path("/journal")
+class JournalResource(private val requestRecorder: RequestRecorder) {
     @GET
+    @Path("/replay")
     fun replay(): Response {
         requestRecorder.replay()
         return Response.accepted().build()
