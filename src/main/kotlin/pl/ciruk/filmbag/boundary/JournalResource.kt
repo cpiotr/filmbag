@@ -1,23 +1,18 @@
 package pl.ciruk.filmbag.boundary
 
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import pl.ciruk.filmbag.request.RequestProcessor
-import pl.ciruk.filmbag.request.RequestRecorder
-import javax.ws.rs.Consumes
+import pl.ciruk.filmbag.request.Journal
 import javax.ws.rs.GET
-import javax.ws.rs.PUT
 import javax.ws.rs.Path
-import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
 @Service
 @Path("/journal")
-class JournalResource(private val requestRecorder: RequestRecorder) {
+class JournalResource(private val journal: Journal) {
     @GET
     @Path("/replay")
     fun replay(): Response {
-        requestRecorder.replay()
+        journal.replay()
         return Response.accepted().build()
     }
 }

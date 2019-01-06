@@ -1,25 +1,23 @@
 package pl.ciruk.filmbag.request
 
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import java.lang.invoke.MethodHandles
 import java.security.MessageDigest
 
-@Component
-class RequestRecorder(private val redisTemplate: RedisTemplate<ByteArray, ByteArray>) {
+@Service
+class Journal(
+        private val redisTemplate: RedisTemplate<ByteArray, ByteArray>,
+        private val journalSerializer: JournalSerializer) {
     private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
     private val digest = MessageDigest.getInstance("SHA-256")
 
-    private val kryo = Kryo()
-
     fun record(films: List<FilmRequest>) {
-        val serializedRequest = serialize(films)
+        val serializedRequest = journalSerializer.serialize(films)
         val key = digest.digest(serializedRequest)
 
         logger.info("Record (key={}, size={})", bytesToHex(key), serializedRequest.size)
@@ -27,13 +25,12 @@ class RequestRecorder(private val redisTemplate: RedisTemplate<ByteArray, ByteAr
     }
 
     fun replay() {
-        val typeToken : List<FilmRequest> = mutableListOf()
         val keys = findAllKeys()
         logger.info("Replaying ${keys.size} requests")
         redisTemplate.opsForValue()
                 .multiGet(keys)
                 .orEmpty()
-                .map { kryo.readObject(Input(it), typeToken.javaClass) }
+                .map(journalSerializer::deserialize)
                 .forEach { logger.info("Got ${it.size} film requests") }
     }
 
@@ -41,12 +38,6 @@ class RequestRecorder(private val redisTemplate: RedisTemplate<ByteArray, ByteAr
             ?.connection
             ?.keys("*".toByteArray())
             .orEmpty()
-
-    private fun serialize(films: List<FilmRequest>): ByteArray {
-        val output = Output(films.size * 1024)
-        kryo.writeObject(output, films)
-        return output.toBytes()
-    }
 
     private fun bytesToHex(hash: ByteArray): String {
         return hash.asSequence()
@@ -56,3 +47,4 @@ class RequestRecorder(private val redisTemplate: RedisTemplate<ByteArray, ByteAr
                 .reduce { first, second -> first + second }
     }
 }
+

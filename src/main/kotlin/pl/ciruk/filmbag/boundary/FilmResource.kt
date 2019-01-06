@@ -29,7 +29,7 @@ fun Film.convertToRequest(): FilmRequest {
             link = this.link,
             score = this.score,
             numberOfScores = this.scores.size,
-            scores = this.scores.map { ScoreRequest(it.grade, it.quantity) }.toSet(),
+            scores = this.scores.map { ScoreRequest(it.grade, it.quantity, it.url) }.toSet(),
             genres = this.genres.map { it.name }.toSet(),
             plot = this.plot,
             poster = this.poster

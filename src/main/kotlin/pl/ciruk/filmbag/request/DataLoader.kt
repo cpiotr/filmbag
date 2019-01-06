@@ -12,7 +12,7 @@ import java.lang.invoke.MethodHandles
 @Service
 class DataLoader(
         private val requestProcessor: RequestProcessor,
-        private val requestRecorder: RequestRecorder,
+        private val journal: Journal,
         @Value("\${external.provider.filmrequest.url}") private val url: String,
         @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
@@ -40,7 +40,7 @@ class DataLoader(
     }
 
     fun recordAndStore(filmRequests: List<FilmRequest>) {
-        requestRecorder.record(filmRequests)
+        journal.record(filmRequests)
         requestProcessor.storeAll(filmRequests)
     }
 

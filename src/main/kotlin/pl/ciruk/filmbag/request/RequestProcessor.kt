@@ -33,7 +33,7 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
                 plot = filmRequest.plot,
                 poster = filmRequest.poster
         )
-        filmRequest.scores.forEach { film.addScore(it.grade!!, it.quantity!!) }
+        filmRequest.scores.forEach { film.addScore(it.grade!!, it.quantity!!, it.url!!) }
         return film
     }
 }

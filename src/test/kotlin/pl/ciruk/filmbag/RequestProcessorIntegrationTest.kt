@@ -18,7 +18,6 @@ import org.springframework.data.redis.core.ValueOperations
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.boundary.ScoreRequest
 import pl.ciruk.filmbag.request.DataLoader
 
 @ExtendWith(SpringExtension::class)
@@ -29,24 +28,8 @@ import pl.ciruk.filmbag.request.DataLoader
 class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTemplate) {
     @Test
     fun `should get created films`() {
-        val filmRequest = FilmRequest(
-                title = "Test title",
-                year = 1912,
-                score = 0.623,
-                numberOfScores = 2,
-                scores = setOf(ScoreRequest(0.1, 2), ScoreRequest(0.2, 3)),
-                genres = setOf("Genre1", "Genre2", "Genre3"),
-                link = "http://test/image.png"
-        )
-        val otherFilmRequest = FilmRequest(
-                title = "Other title",
-                year = 1999,
-                score = 0.87,
-                numberOfScores = 1,
-                scores = setOf(ScoreRequest(0.1, 10)),
-                genres = setOf("Genre2", "Genre1", "Genre4"),
-                link = "http://other/image.png"
-        )
+        val filmRequest = testFilmRequest()
+        val otherFilmRequest = testOtherFilmRequest()
 
         executePutRequest(filmRequest, otherFilmRequest)
         val arrayOfFilmRequests = executeGetRequest()
@@ -56,21 +39,12 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
 
     @Test
     fun `should not store single film twice`() {
-        val filmRequest = FilmRequest(
-                title = "Some title",
-                year = 1914,
-                score = 0.123,
-                numberOfScores = 3,
-                scores = setOf(ScoreRequest(0.1, 2), ScoreRequest(0.2, 3), ScoreRequest(0.4, 4)),
-                genres = setOf("Genre1", "Genre3"),
-                link = "http://test123/image.png"
-        )
+        val filmRequest = testFilmRequest()
 
         executePutRequest(filmRequest)
         executePutRequest(filmRequest)
 
         val arrayOfFilmRequests = executeGetRequest()
-
         assertThat(arrayOfFilmRequests)
                 .hasSize(1)
                 .containsOnly(filmRequest)
@@ -86,6 +60,7 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
 @Configuration
 class TestConfiguration {
     @Bean
+    @Primary
     fun dataLoader(): DataLoader {
         return mock(DataLoader::class.java)
     }
