@@ -43,7 +43,7 @@ class RequestRecorder(private val redisTemplate: RedisTemplate<ByteArray, ByteAr
             .orEmpty()
 
     private fun serialize(films: List<FilmRequest>): ByteArray {
-        val output = Output(films.size * 512)
+        val output = Output(films.size * 1024)
         kryo.writeObject(output, films)
         return output.toBytes()
     }

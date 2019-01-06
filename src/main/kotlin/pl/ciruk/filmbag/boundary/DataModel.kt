@@ -17,5 +17,6 @@ data class FilmRequest(
 
 data class ScoreRequest (
         val grade: Double? = null,
-        val quantity: Long? = null
+        val quantity: Long? = null,
+        val url: String? = null
 )

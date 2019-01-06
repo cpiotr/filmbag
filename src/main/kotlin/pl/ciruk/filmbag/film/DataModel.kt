@@ -48,6 +48,7 @@ data class Score(
         @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
         val grade: Double,
         val quantity: Long,
+        val url: String? = null,
         @ManyToOne @JoinColumn(name = "film_id") val film: Film? = null) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -72,5 +73,5 @@ data class Score(
 
 @Entity
 data class Genre(
-    @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
+        @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
         val name: String)
