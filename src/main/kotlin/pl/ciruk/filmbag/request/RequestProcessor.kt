@@ -18,7 +18,7 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
     fun storeAll(filmRequests: List<FilmRequest>) {
         val genresFromRequests = filmRequests.flatMap { it.genres }
         genreService.merge(genresFromRequests)
-        filmRequests.forEach { store(it)}
+        filmRequests.forEach { store(it) }
     }
 
     private fun convertToFilm(filmRequest: FilmRequest): Film {

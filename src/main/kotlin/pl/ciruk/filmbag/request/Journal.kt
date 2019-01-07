@@ -2,7 +2,6 @@ package pl.ciruk.filmbag.request
 
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
-import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import java.lang.invoke.MethodHandles

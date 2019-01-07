@@ -15,7 +15,7 @@ data class FilmRequest(
         val genres: Set<String> = mutableSetOf()
 )
 
-data class ScoreRequest (
+data class ScoreRequest(
         val grade: Double? = null,
         val quantity: Long? = null,
         val url: String? = null

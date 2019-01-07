@@ -2,8 +2,8 @@ package pl.ciruk.filmbag.boundary
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import pl.ciruk.filmbag.request.RequestProcessor
 import pl.ciruk.filmbag.request.Journal
+import pl.ciruk.filmbag.request.RequestProcessor
 import javax.ws.rs.Consumes
 import javax.ws.rs.PUT
 import javax.ws.rs.Path
