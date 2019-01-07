@@ -24,14 +24,14 @@ class Journal(
         redisTemplate.opsForValue()[key] = serializedRequest
     }
 
-    fun replay() {
+    fun replay(): Sequence<List<FilmRequest>> {
         val keys = findAllKeys()
         logger.info("Replaying ${keys.size} requests")
-        redisTemplate.opsForValue()
+        return redisTemplate.opsForValue()
                 .multiGet(keys)
                 .orEmpty()
                 .map(journalSerializer::deserialize)
-                .forEach { logger.info("Got ${it.size} film requests") }
+                .asSequence()
     }
 
     private fun findAllKeys() = redisTemplate.connectionFactory

@@ -61,19 +61,19 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
 class TestConfiguration {
     @Bean
     @Primary
-    fun dataLoader(): DataLoader {
+    fun testDataLoader(): DataLoader {
         return mock(DataLoader::class.java)
     }
 
     @Bean
     @Primary
-    fun redisConnectionFactory(): RedisConnectionFactory {
+    fun testRedisConnectionFactory(): RedisConnectionFactory {
         return mock(RedisConnectionFactory::class.java)
     }
 
     @Bean
     @Primary
-    fun redisTemplate(): RedisTemplate<ByteArray, ByteArray> {
+    fun testRedisTemplate(): RedisTemplate<ByteArray, ByteArray> {
         val redisTemplate = mock(RedisTemplate::class.java)
 
         doReturn(mock(ValueOperations::class.java)).`when`(redisTemplate).opsForValue()
@@ -81,7 +81,7 @@ class TestConfiguration {
     }
 
     @Bean
-    fun redisKeyValueAdapter(): RedisKeyValueAdapter {
+    fun testRedisKeyValueAdapter(): RedisKeyValueAdapter {
         return mock(RedisKeyValueAdapter::class.java)
     }
 }
