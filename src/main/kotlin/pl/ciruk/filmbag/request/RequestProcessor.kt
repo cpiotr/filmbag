@@ -3,6 +3,7 @@ package pl.ciruk.filmbag.request
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.boundary.ScoreRequest
 import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.GenreService
@@ -33,7 +34,9 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
                 plot = filmRequest.plot,
                 poster = filmRequest.poster
         )
-        filmRequest.scores.forEach { film.addScore(it.grade!!, it.quantity!!, it.url!!) }
+        filmRequest.scores
+                .filter(ScoreRequest::isValid)
+                .forEach { film.addScore(it.grade!!, it.quantity!!, it.url!!) }
         return film
     }
 }

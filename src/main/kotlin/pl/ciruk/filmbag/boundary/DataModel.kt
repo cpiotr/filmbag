@@ -18,5 +18,8 @@ data class FilmRequest(
 data class ScoreRequest(
         val grade: Double? = null,
         val quantity: Long? = null,
-        val url: String? = null
-)
+        val url: String? = null) {
+    fun isValid(): Boolean {
+        return grade != null && quantity != null
+    }
+}
