@@ -57,7 +57,7 @@ CMD sh -c " \
 		-Dlogging.level.pl.ciruk=$APP_LOGGING_LEVEL \
 		-Dserver.port=$APP_PORT \
 		-Dspring.datasource.url=$JDBC_URL \
-		-Dredis.hots=$REDIS_HOST \
+		-Dredis.host=$REDIS_HOST \
 		-Dexternal.provider.filmrequest.url=$FILM_PROVIDER_URL \
 		$JMX_OPTS \
 		$JVM_OPTS \

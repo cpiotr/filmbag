@@ -59,6 +59,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testCompile("com.h2database:h2:$h2Version")
+    testCompile("com.github.kstyrc:embedded-redis:0.6")
 }
 
 compileKotlin {

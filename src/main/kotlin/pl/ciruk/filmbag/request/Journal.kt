@@ -33,10 +33,7 @@ class Journal(
                 .asSequence()
     }
 
-    private fun findAllKeys() = redisTemplate.connectionFactory
-            ?.connection
-            ?.keys("*".toByteArray())
-            .orEmpty()
+    private fun findAllKeys() = redisTemplate.keys("*".toByteArray())
 
     private fun bytesToHex(hash: ByteArray): String {
         return hash.asSequence()
