@@ -1,4 +1,4 @@
-package pl.ciruk.filmbag
+package pl.ciruk.filmbag.integration
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -17,8 +17,11 @@ import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringExtension
+import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.request.DataLoader
+import pl.ciruk.filmbag.testFilmRequest
+import pl.ciruk.filmbag.testOtherFilmRequest
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)

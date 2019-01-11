@@ -41,9 +41,10 @@ class Connections {
     @Bean
     fun redisConnectionFactory(
             @Value("\${redis.host}") redisHost: String,
+            @Value("\${redis.port}") redisPort: Int,
             @Value("\${redis.pool.maxActive:8}") redisPoolMaxActive: Int): RedisConnectionFactory {
-        logConfiguration("Redis host", redisHost)
-        val redisStandaloneConfiguration = RedisStandaloneConfiguration(redisHost)
+        logConfiguration("Redis connection", "$redisHost:$redisPort")
+        val redisStandaloneConfiguration = RedisStandaloneConfiguration(redisHost, redisPort)
 
         val poolConfig = JedisPoolConfig()
         poolConfig.maxTotal = redisPoolMaxActive

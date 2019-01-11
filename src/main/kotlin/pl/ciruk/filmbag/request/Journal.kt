@@ -19,8 +19,8 @@ class Journal(
         val serializedRequest = journalSerializer.serialize(films)
         val key = digest.digest(serializedRequest)
 
-        logger.info("Record (key={}, size={})", bytesToHex(key), serializedRequest.size)
         redisTemplate.opsForValue()[key] = serializedRequest
+        logger.info("Record (key={}, size={})", bytesToHex(key), serializedRequest.size)
     }
 
     fun replay(): Sequence<List<FilmRequest>> {
@@ -29,8 +29,8 @@ class Journal(
         return redisTemplate.opsForValue()
                 .multiGet(keys)
                 .orEmpty()
-                .map(journalSerializer::deserialize)
                 .asSequence()
+                .map(journalSerializer::deserialize)
     }
 
     private fun findAllKeys() = redisTemplate.keys("*".toByteArray())
