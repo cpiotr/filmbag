@@ -39,9 +39,6 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-data-redis")
     compile("redis.clients:jedis:$jedisVersion")
 
-    compile("org.springframework.boot:spring-boot-starter-web")
-    compile("org.springframework.boot:spring-boot-starter-mustache")
-
     compile("org.springframework.boot:spring-boot-starter-jersey")
     compile("javax.activation:activation:$javaxActivationVersion")
     compile("javax.xml.bind:jaxb-api:$jaxbVersion")
