@@ -7,7 +7,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.function.logWithoutFallback
 import java.lang.invoke.MethodHandles
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 @Service
 class DataLoader(
@@ -16,18 +19,12 @@ class DataLoader(
         @Value("\${external.provider.filmrequest.url}") private val url: String,
         @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+    private val threadPool = Executors.newSingleThreadExecutor()
 
-    fun import() {
-        try {
-            loadDataOrThrow()
-        } catch (error: FuelError) {
-            val response = error.response
-            if (response.statusCode > -1) {
-                log.error("Error while loading data: {}/{}", response.statusCode, response.responseMessage)
-            } else {
-                log.error("Error while loading data", error)
-            }
-        }
+    fun importAsync() {
+        CompletableFuture
+                .runAsync(Runnable { loadDataOrThrow() }, threadPool)
+                .exceptionally { logWithoutFallback { logError(it) } }
     }
 
     private fun loadDataOrThrow() {
@@ -60,5 +57,15 @@ class DataLoader(
                 { it },
                 { error -> throw error }
         )
+    }
+
+    private fun logError(error: Throwable) {
+        if (error is FuelError && error.response.statusCode > -1) {
+            val response = error.response
+
+            log.error("Error while loading data: {}/{}", response.statusCode, response.responseMessage)
+        } else {
+            log.error("Error while loading data", error)
+        }
     }
 }

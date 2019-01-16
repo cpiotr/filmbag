@@ -4,16 +4,25 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.function.logWithoutFallback
 import java.lang.invoke.MethodHandles
 import java.security.MessageDigest
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 @Service
 class Journal(
         private val redisTemplate: RedisTemplate<ByteArray, ByteArray>,
         private val journalSerializer: JournalSerializer) {
     private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
-
+    private val threadPool = Executors.newSingleThreadExecutor()
     private val digest = MessageDigest.getInstance("SHA-256")
+
+    fun recordAsync(films: List<FilmRequest>) {
+        CompletableFuture
+                .runAsync(Runnable { record(films) }, threadPool)
+                .exceptionally { logWithoutFallback { logger.error("Cannot record $it") } }
+    }
 
     fun record(films: List<FilmRequest>) {
         val serializedRequest = journalSerializer.serialize(films)

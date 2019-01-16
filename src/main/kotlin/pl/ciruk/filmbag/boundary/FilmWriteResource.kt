@@ -19,7 +19,7 @@ class FilmWriteResource(
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     fun storeIfAbsent(filmRequests: List<FilmRequest>): Response {
-        journal.record(filmRequests)
+        journal.recordAsync(filmRequests)
         requestProcessor.storeAll(filmRequests)
         return Response.accepted().build()
     }
