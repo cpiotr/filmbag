@@ -28,7 +28,7 @@ class FilmService(private val repository: FilmRepository) {
     }
 
     @PostConstruct
-    fun load() {
+    private fun load() {
         repository.findAll()
                 .map { it.hash }
                 .forEach { existingFilmHashes.add(it) }

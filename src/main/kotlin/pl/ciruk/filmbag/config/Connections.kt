@@ -1,5 +1,7 @@
 package pl.ciruk.filmbag.config
 
+import com.github.kittinunf.fuel.core.Request
+import com.github.kittinunf.fuel.httpGet
 import com.zaxxer.hikari.HikariDataSource
 import org.mariadb.jdbc.MariaDbDataSource
 import org.slf4j.LoggerFactory
@@ -81,3 +83,8 @@ class Connections {
         }
     }
 }
+
+@JvmOverloads
+fun String.asHttpGet(parameters: List<Pair<String, Any?>>? = null): Request = this.httpGet(parameters)
+        .timeout(1_000)
+        .timeoutRead(30_000)

@@ -1,12 +1,12 @@
 package pl.ciruk.filmbag.request
 
 import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.fuel.jackson.responseObject
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.config.asHttpGet
 import pl.ciruk.filmbag.function.logWithoutFallback
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.CompletableFuture
@@ -49,9 +49,7 @@ class DataLoader(
     fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
         log.debug("Fetch films from {} page", index)
 
-        val (_, _, result) = "$url/$index".httpGet()
-                .timeout(1_000)
-                .timeoutRead(30_000)
+        val (_, _, result) = "$url/$index".asHttpGet()
                 .responseObject<List<FilmRequest>>()
         return result.fold(
                 { it },
