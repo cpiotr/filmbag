@@ -23,3 +23,8 @@ data class ScoreRequest(
         return grade != null && quantity != null
     }
 }
+
+sealed class Range<T>
+class LeftClosedRange<T>(val from: T) : Range<T>()
+class RightClosedRange<T>(val to: T) : Range<T>()
+class ClosedRange<T>(val from: T, val to: T) : Range<T>()
