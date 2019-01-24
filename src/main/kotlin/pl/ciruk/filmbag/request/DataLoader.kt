@@ -21,8 +21,8 @@ class DataLoader(
     private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
     private val threadPool = Executors.newSingleThreadExecutor()
 
-    fun importAsync() {
-        CompletableFuture
+    fun importAsync(): CompletableFuture<Void> {
+        return CompletableFuture
                 .runAsync(Runnable { loadDataOrThrow() }, threadPool)
                 .exceptionally { logWithoutFallback { logError(it) } }
     }
@@ -33,20 +33,21 @@ class DataLoader(
                 .flatMap { it.asSequence() }
                 .take(limit)
                 .chunked(10)
-                .forEach(::recordAndStore)
+                .forEach(this::recordAndStore)
+        log.info("Finished loading data")
     }
 
-    fun recordAndStore(filmRequests: List<FilmRequest>) {
+    private fun recordAndStore(filmRequests: List<FilmRequest>) {
         journal.record(filmRequests)
         requestProcessor.storeAll(filmRequests)
     }
 
-    fun generateSequenceOfFilms(): Sequence<List<FilmRequest>> {
+    private fun generateSequenceOfFilms(): Sequence<List<FilmRequest>> {
         return generateSequence(1) { it + 1 }
                 .map { fetchFilmsFromPage(it) }
     }
 
-    fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
+    private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
         log.debug("Fetch films from {} page", index)
 
         val (_, _, result) = "$url/$index".asHttpGet()
