@@ -24,7 +24,8 @@ data class ScoreRequest(
     }
 }
 
-sealed class Range<T>
-class LeftClosedRange<T>(val from: T) : Range<T>()
-class RightClosedRange<T>(val to: T) : Range<T>()
-class ClosedRange<T>(val from: T, val to: T) : Range<T>()
+sealed class Range<in T : Comparable<T>>
+class LeftClosedRange<T : Comparable<T>>(val from: T) : Range<T>()
+class RightClosedRange<T : Comparable<T>>(val to: T) : Range<T>()
+class ClosedRange<T : Comparable<T>>(val from: T, val to: T) : Range<T>()
+class EmptyRange<T : Comparable<T>> : Range<T>()

@@ -16,7 +16,7 @@ class FilmResource(private val filmService: FilmService) {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     fun findAll(): List<FilmRequest> {
-        return filmService.findAll()
+        return filmService.find(EmptyRange(), EmptyRange())
                 .map { it.convertToRequest() }
     }
 }
