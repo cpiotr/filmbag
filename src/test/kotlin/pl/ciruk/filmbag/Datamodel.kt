@@ -2,6 +2,10 @@ package pl.ciruk.filmbag
 
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.ScoreRequest
+import pl.ciruk.filmbag.film.Film
+import pl.ciruk.filmbag.film.Genre
+import pl.ciruk.filmbag.film.Score
+import java.util.*
 
 fun testFilmRequest() = FilmRequest(
         title = "Test title with a very long suffix",
@@ -26,3 +30,11 @@ fun testOtherFilmRequest() = FilmRequest(
         scores = setOf(ScoreRequest(0.1, 10, url = "Test other url")),
         genres = setOf("Genre2", "Genre1", "Genre4"),
         link = "http://other/image.png")
+
+fun testFilm(year: Int = 2013) = Film(
+        title = "Test title" + UUID.randomUUID(),
+        year = year,
+        link = "http://link",
+        score = 0.3141593,
+        scores = mutableSetOf(Score(grade = 0.3, quantity = 500), Score(grade = 0.4, quantity = 100)),
+        genres = mutableSetOf(Genre(name = "Thriller")))

@@ -27,7 +27,7 @@ class FilmService(private val repository: FilmRepository) {
         repository.saveAll(notRecorded)
     }
 
-    fun find(year: Range<Int>, score: Range<BigDecimal>): List<Film> {
+    fun find(year: Range<Int> = EmptyRange(), score: Range<BigDecimal> = EmptyRange()): List<Film> {
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }
 
