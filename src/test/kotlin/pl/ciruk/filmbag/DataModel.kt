@@ -7,9 +7,9 @@ import pl.ciruk.filmbag.film.Genre
 import pl.ciruk.filmbag.film.Score
 import java.util.*
 
-fun testFilmRequest() = FilmRequest(
-        title = "Test title with a very long suffix",
-        year = 1912,
+fun testFilmRequest(year: Int = 1912) = FilmRequest(
+        title = "Test title " + UUID.randomUUID(),
+        year = year,
         score = 0.623,
         numberOfScores = 4,
         scores = setOf(
@@ -22,9 +22,9 @@ fun testFilmRequest() = FilmRequest(
         poster = "https://www.filmweb.pl/film/Narodziny+gwiazdy-2018-542576dsff",
         plot = "Historia najbardziej czarującego złodzieja w historii, który wcale nie miał ochoty na to, żeby przejść na emeryturę, z więzienia uciekał 30 razy, a rabując banki nigdy nie zapominał o byciu gentlemanem.")
 
-fun testOtherFilmRequest() = FilmRequest(
-        title = "Other title",
-        year = 1999,
+fun testOtherFilmRequest(year: Int = 1999) = FilmRequest(
+        title = "Other title" + UUID.randomUUID(),
+        year = year,
         score = 0.87,
         numberOfScores = 1,
         scores = setOf(ScoreRequest(0.1, 10, url = "Test other url")),

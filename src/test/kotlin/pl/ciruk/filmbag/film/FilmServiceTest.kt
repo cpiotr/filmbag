@@ -1,6 +1,7 @@
 package pl.ciruk.filmbag.film
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,22 +13,30 @@ import pl.ciruk.filmbag.boundary.ClosedRange
 import pl.ciruk.filmbag.boundary.LeftClosedRange
 import pl.ciruk.filmbag.boundary.RightClosedRange
 import pl.ciruk.filmbag.integration.TestConfiguration
-import pl.ciruk.filmbag.testFilm
+import pl.ciruk.filmbag.request.RequestProcessor
+import pl.ciruk.filmbag.testFilmRequest
+import pl.ciruk.filmbag.testOtherFilmRequest
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
         classes = [FilmBagApplication::class, TestConfiguration::class])
-internal class FilmServiceTest(@Autowired val filmService: FilmService) {
+internal class FilmServiceTest(
+        @Autowired val requestProcessor: RequestProcessor,
+        @Autowired val filmService: FilmService) {
+
+    val firstFilm = testFilmRequest(2009)
+    val secondFilm = testFilmRequest(2011)
+    val thirdFilm = testOtherFilmRequest(2012)
+
+    @BeforeEach
+    internal fun setUp() {
+        requestProcessor.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
+    }
 
     @Test
     fun shouldFindStoredFilmsByClosedYearRange() {
-        val firstFilm = testFilm(2010)
-        val secondFilm = testFilm(2011)
-        val thirdFilm = testFilm(2012)
-        filmService.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
-
         val films = filmService.find(year = ClosedRange(2011, 2012))
 
         assertThat(films.map { it.title })
@@ -36,11 +45,6 @@ internal class FilmServiceTest(@Autowired val filmService: FilmService) {
 
     @Test
     fun shouldFindStoredFilmsByLeftClosedYearRange() {
-        val firstFilm = testFilm(2010)
-        val secondFilm = testFilm(2011)
-        val thirdFilm = testFilm(2012)
-        filmService.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
-
         val films = filmService.find(year = LeftClosedRange(2011))
 
         assertThat(films.map { it.title })
@@ -49,11 +53,6 @@ internal class FilmServiceTest(@Autowired val filmService: FilmService) {
 
     @Test
     fun shouldFindStoredFilmsByRightClosedYearRange() {
-        val firstFilm = testFilm(2010)
-        val secondFilm = testFilm(2011)
-        val thirdFilm = testFilm(2012)
-        filmService.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
-
         val films = filmService.find(year = RightClosedRange(2011))
 
         assertThat(films.map { it.title })
@@ -62,12 +61,7 @@ internal class FilmServiceTest(@Autowired val filmService: FilmService) {
 
     @Test
     fun shouldNotFindFilmsCreatedLaterThanSpecifiedRange() {
-        val firstFilm = testFilm(2010)
-        val secondFilm = testFilm(2011)
-        val thirdFilm = testFilm(2012)
-        filmService.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
-
-        val films = filmService.find(year = RightClosedRange(2009))
+        val films = filmService.find(year = RightClosedRange(2008))
 
         assertThat(films.map { it.title })
                 .isEmpty()
@@ -75,11 +69,6 @@ internal class FilmServiceTest(@Autowired val filmService: FilmService) {
 
     @Test
     fun shouldNotFindFilmsCreatedEarlierThanSpecifiedRange() {
-        val firstFilm = testFilm(2010)
-        val secondFilm = testFilm(2011)
-        val thirdFilm = testFilm(2012)
-        filmService.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
-
         val films = filmService.find(year = LeftClosedRange(2020))
 
         assertThat(films.map { it.title })
@@ -88,12 +77,7 @@ internal class FilmServiceTest(@Autowired val filmService: FilmService) {
 
     @Test
     fun shouldNotFindFilmsCreatedOutsideSpecifiedRange() {
-        val firstFilm = testFilm(2009)
-        val secondFilm = testFilm(2010)
-        val thirdFilm = testFilm(2012)
-        filmService.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
-
-        val films = filmService.find(year = ClosedRange(2011, 2011))
+        val films = filmService.find(year = ClosedRange(2010, 2010))
 
         assertThat(films.map { it.title })
                 .isEmpty()
