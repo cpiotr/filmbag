@@ -43,7 +43,7 @@ class FilmService(private val repository: FilmRepository) {
     private fun <T : Comparable<T>> createSpecification(range: Range<T>, propertyName: String): Specification<Film>? {
         return when (range) {
             is LeftClosedRange -> Specification { film, _, builder -> builder.greaterThanOrEqualTo(film[propertyName], range.from) }
-            is RightClosedRange -> Specification { film, _, builder -> builder.lessThan(film[propertyName], range.to) }
+            is RightClosedRange -> Specification { film, _, builder -> builder.lessThanOrEqualTo(film[propertyName], range.to) }
             is ClosedRange -> Specification { film, _, builder -> builder.between(film[propertyName], range.from, range.to) }
             is EmptyRange -> null
         }
