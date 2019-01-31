@@ -6,6 +6,7 @@ import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.ScoreRequest
 import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.film.FilmService
+import pl.ciruk.filmbag.film.Genre
 import pl.ciruk.filmbag.film.GenreService
 
 @Service
@@ -17,13 +18,15 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
     }
 
     fun storeAll(filmRequests: List<FilmRequest>) {
-        val genresFromRequests = filmRequests.flatMap { it.genres }
+        val genresFromRequests = filmRequests.flatMap { it.genres }.toSet()
         genreService.merge(genresFromRequests)
+
         filmRequests.forEach { store(it) }
     }
 
     private fun convertToFilm(filmRequest: FilmRequest): Film {
         val genres = genreService.merge(filmRequest.genres)
+
         val film = Film(
                 created = filmRequest.created,
                 title = filmRequest.title!!,

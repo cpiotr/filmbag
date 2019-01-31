@@ -36,7 +36,7 @@ internal class FilmServiceTest(
     }
 
     @Test
-    fun shouldFindStoredFilmsByClosedYearRange() {
+    fun `should find stored films by closed year range`() {
         val films = filmService.find(year = ClosedRange(2011, 2012))
 
         assertThat(films.map { it.title })
@@ -44,7 +44,7 @@ internal class FilmServiceTest(
     }
 
     @Test
-    fun shouldFindStoredFilmsByLeftClosedYearRange() {
+    fun `should find stored films by left closed year range`() {
         val films = filmService.find(year = LeftClosedRange(2011))
 
         assertThat(films.map { it.title })
@@ -52,7 +52,7 @@ internal class FilmServiceTest(
     }
 
     @Test
-    fun shouldFindStoredFilmsByRightClosedYearRange() {
+    fun `should find stored films by right closed year range`() {
         val films = filmService.find(year = RightClosedRange(2011))
 
         assertThat(films.map { it.title })
@@ -60,7 +60,7 @@ internal class FilmServiceTest(
     }
 
     @Test
-    fun shouldNotFindFilmsCreatedLaterThanSpecifiedRange() {
+    fun `should not find films created later than specified range`() {
         val films = filmService.find(year = RightClosedRange(2008))
 
         assertThat(films.map { it.title })
@@ -68,7 +68,7 @@ internal class FilmServiceTest(
     }
 
     @Test
-    fun shouldNotFindFilmsCreatedEarlierThanSpecifiedRange() {
+    fun `should not find films created earlier than specified range`() {
         val films = filmService.find(year = LeftClosedRange(2020))
 
         assertThat(films.map { it.title })
@@ -76,7 +76,7 @@ internal class FilmServiceTest(
     }
 
     @Test
-    fun shouldNotFindFilmsCreatedOutsideSpecifiedRange() {
+    fun `should not find films created outside specified range`() {
         val films = filmService.find(year = ClosedRange(2010, 2010))
 
         assertThat(films.map { it.title })

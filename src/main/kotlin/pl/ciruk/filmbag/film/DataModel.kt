@@ -16,7 +16,7 @@ data class Film(
         val link: String,
         val poster: String? = null,
         val score: Double,
-        @OneToMany(cascade = [ALL], mappedBy = "film") val scores: MutableSet<Score> = mutableSetOf(),
+        @OneToMany(cascade = [PERSIST, MERGE], mappedBy = "film") val scores: MutableSet<Score> = mutableSetOf(),
         @ManyToMany val genres: Set<Genre> = setOf(),
         val hash: Int = Objects.hash(title, year, genres.map { it.name })) {
     fun addScore(grade: Double, quantity: Long, url: String?) {
