@@ -14,8 +14,12 @@ class GenreService(private val genreRepository: GenreRepository) {
     private val genreByName = HashMap<String, Genre>()
 
     @PostConstruct
-    fun loadExisting() {
+    private fun loadExisting() {
         cacheAll(genreRepository.findAll())
+    }
+
+    fun findAll(): Iterable<Genre> {
+        return genreRepository.findAll()
     }
 
     fun merge(genres: Iterable<String>): Set<Genre> {
@@ -24,7 +28,7 @@ class GenreService(private val genreRepository: GenreRepository) {
         return (store(newGenres) + existingGenres).toSet()
     }
 
-    fun store(genres: Iterable<Genre>): Iterable<Genre> {
+    private fun store(genres: Iterable<Genre>): Iterable<Genre> {
         val saved = genreRepository.saveAll(genres)
         cacheAll(saved)
         return saved.toSet()
