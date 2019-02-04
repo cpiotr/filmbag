@@ -35,7 +35,7 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
         val otherFilmRequest = testOtherFilmRequest()
 
         executePutRequest(filmRequest, otherFilmRequest)
-        val arrayOfFilmRequests = executeGetRequest()
+        val arrayOfFilmRequests = executeGetRequest(1900)
 
         assertThat(arrayOfFilmRequests).containsOnly(filmRequest, otherFilmRequest)
     }
@@ -53,7 +53,9 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
                 .containsOnly(filmRequest)
     }
 
-    private fun executeGetRequest() = restTemplate.getForObject("/resources/films", Array<FilmRequest>::class.java)
+    private fun executeGetRequest(yearFrom: Int = -1, yearTo: Int = -1) = restTemplate.getForObject(
+            "/resources/films?yearFrom=$yearFrom&yearTo=$yearTo",
+            Array<FilmRequest>::class.java)
 
     private fun executePutRequest(vararg filmRequests: FilmRequest) {
         restTemplate.put("/resources/films", filmRequests)

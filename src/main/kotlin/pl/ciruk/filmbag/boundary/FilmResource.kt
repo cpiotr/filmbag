@@ -4,9 +4,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.film.FilmService
-import javax.ws.rs.GET
-import javax.ws.rs.Path
-import javax.ws.rs.Produces
+import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
 
 @Service
@@ -15,23 +13,25 @@ import javax.ws.rs.core.MediaType
 class FilmResource(private val filmService: FilmService) {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    fun findAll(): List<FilmRequest> {
-        return filmService.find(EmptyRange(), EmptyRange())
+    fun findAll(
+            @DefaultValue(missingInt.toString()) @QueryParam("yearFrom") yearFrom: Int,
+            @DefaultValue(missingInt.toString()) @QueryParam("yearTo") yearTo: Int,
+            @DefaultValue(missingDouble.toString()) @QueryParam("scoreFrom") scoreFrom: Double,
+            @DefaultValue(missingDouble.toString()) @QueryParam("scoreTo") scoreTo: Double
+    ): List<FilmRequest> {
+        val yearRange: Range<Int> = when (Pair(yearFrom, yearTo)) {
+            Pair(missingInt, missingInt) -> EmptyRange()
+            Pair(yearFrom, missingInt) -> LeftClosedRange(yearFrom)
+            Pair(missingInt, yearTo) -> RightClosedRange(yearTo)
+            else -> ClosedRange(yearFrom, yearTo)
+        }
+
+        return filmService.find(yearRange, EmptyRange())
                 .map { it.convertToRequest() }
     }
-}
 
-fun Film.convertToRequest(): FilmRequest {
-    return FilmRequest(
-            created = this.created,
-            title = this.title,
-            year = this.year,
-            link = this.link,
-            score = this.score,
-            numberOfScores = this.scores.size,
-            scores = this.scores.map { ScoreRequest(it.grade, it.quantity, it.url) }.toSet(),
-            genres = this.genres.map { it.name }.toSet(),
-            plot = this.plot,
-            poster = this.poster
-    )
+    companion object {
+        const val missingInt = -1
+        const val missingDouble = -1.0
+    }
 }
