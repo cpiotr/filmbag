@@ -1,16 +1,20 @@
 package pl.ciruk.filmbag.film
 
+import org.slf4j.LoggerFactory
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.boundary.*
 import pl.ciruk.filmbag.boundary.ClosedRange
+import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
 import javax.annotation.PostConstruct
 
 @Service
 @Transactional
 class FilmService(private val repository: FilmRepository) {
+    private val logger =  LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+
     private val existingFilmHashes = HashSet<Int>()
 
     fun store(film: Film) {
@@ -28,6 +32,8 @@ class FilmService(private val repository: FilmRepository) {
     }
 
     fun find(year: Range<Int> = EmptyRange(), score: Range<BigDecimal> = EmptyRange()): List<Film> {
+        logger.debug("Find by $year and $score")
+
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }
 
