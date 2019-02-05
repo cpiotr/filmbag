@@ -40,9 +40,8 @@ class FilmService(private val repository: FilmRepository) {
         return if (allSpecifications.isEmpty()) {
             repository.findAll()
         } else {
-            repository.findAll(
-                    allSpecifications.reduce { specification, other -> specification.and(other) }
-            )
+            val specification = allSpecifications.reduce { first, second -> first.and(second) }
+            repository.findAll(specification)
         }
     }
 

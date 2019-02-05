@@ -19,6 +19,8 @@ import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.boundary.FilmResource
+import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
@@ -35,9 +37,35 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
         val otherFilmRequest = testOtherFilmRequest()
 
         executePutRequest(filmRequest, otherFilmRequest)
-        val arrayOfFilmRequests = executeGetRequest(1900)
+        val arrayOfFilmRequests = executeGetRequest()
 
         assertThat(arrayOfFilmRequests).containsOnly(filmRequest, otherFilmRequest)
+    }
+
+    @Test
+    fun `should find created film by year`() {
+        val filmRequest = testFilmRequest(year = 2020)
+        val otherFilmRequest = testOtherFilmRequest(year = 2010)
+        val yetAnotherFilmRequest = testFilmRequest(year = 2021)
+        val nextFilmRequest = testFilmRequest(year = 2030)
+
+        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+        val arrayOfFilmRequests = executeGetRequest(yearFrom = 2019, yearTo = 2025)
+
+        assertThat(arrayOfFilmRequests).containsOnly(filmRequest, yetAnotherFilmRequest)
+    }
+
+    @Test
+    fun `should find created film by score`() {
+        val filmRequest = testFilmRequest(score = 0.61)
+        val otherFilmRequest = testOtherFilmRequest(score = 0.65)
+        val yetAnotherFilmRequest = testFilmRequest(score = 0.7)
+        val nextFilmRequest = testFilmRequest(score = 0.8)
+
+        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+        val arrayOfFilmRequests = executeGetRequest(scoreFrom = 0.625, scoreTo = 0.75)
+
+        assertThat(arrayOfFilmRequests).containsOnly(otherFilmRequest, yetAnotherFilmRequest)
     }
 
     @Test
@@ -53,9 +81,15 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
                 .containsOnly(filmRequest)
     }
 
-    private fun executeGetRequest(yearFrom: Int = -1, yearTo: Int = -1) = restTemplate.getForObject(
-            "/resources/films?yearFrom=$yearFrom&yearTo=$yearTo",
-            Array<FilmRequest>::class.java)
+    private fun executeGetRequest(
+            yearFrom: Int = FilmResource.missingInt,
+            yearTo: Int = FilmResource.missingInt,
+            scoreFrom: Double = FilmResource.missingDecimal,
+            scoreTo: Double = FilmResource.missingDecimal): Array<FilmRequest> {
+        return restTemplate.getForObject(
+                "/resources/films?yearFrom=$yearFrom&yearTo=$yearTo&scoreFrom=$scoreFrom&scoreTo=$scoreTo",
+                Array<FilmRequest>::class.java)
+    }
 
     private fun executePutRequest(vararg filmRequests: FilmRequest) {
         restTemplate.put("/resources/films", filmRequests)
