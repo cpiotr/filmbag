@@ -69,6 +69,19 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
     }
 
     @Test
+    fun `should find created film by score and year`() {
+        val filmRequest = testFilmRequest(score = 0.61, year = 2005)
+        val otherFilmRequest = testOtherFilmRequest(score = 0.65, year = 2010)
+        val yetAnotherFilmRequest = testFilmRequest(score = 0.7, year = 2015)
+        val nextFilmRequest = testFilmRequest(score = 0.8, year = 2020)
+
+        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+        val arrayOfFilmRequests = executeGetRequest(scoreFrom = 0.625, scoreTo = 0.75, yearFrom = 2013)
+
+        assertThat(arrayOfFilmRequests).containsOnly(yetAnotherFilmRequest)
+    }
+
+    @Test
     fun `should not store single film twice`() {
         val filmRequest = testFilmRequest()
 
