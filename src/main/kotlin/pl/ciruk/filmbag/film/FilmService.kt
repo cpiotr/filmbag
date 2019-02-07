@@ -1,6 +1,7 @@
 package pl.ciruk.filmbag.film
 
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -31,17 +32,27 @@ class FilmService(private val repository: FilmRepository) {
         repository.saveAll(notRecorded)
     }
 
-    fun find(year: Range<Int> = EmptyRange(), score: Range<BigDecimal> = EmptyRange()): List<Film> {
-        logger.debug("Find by $year and $score")
+    fun find(
+            year: Range<Int> = EmptyRange(),
+            score: Range<BigDecimal> = EmptyRange(),
+            page: Int = 0,
+            pageSize: Int = 10): List<Film> {
+        logger.debug("Find $page page by $year and $score")
 
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }
 
+        val pageRequest = PageRequest.of(page, pageSize)
+
         return if (allSpecifications.isEmpty()) {
-            repository.findAll()
+            repository
+                    .findAll(pageRequest)
+                    .content
         } else {
             val specification = allSpecifications.reduce { first, second -> first.and(second) }
-            repository.findAll(specification)
+            repository
+                    .findAll(specification, pageRequest)
+                    .content
         }
     }
 

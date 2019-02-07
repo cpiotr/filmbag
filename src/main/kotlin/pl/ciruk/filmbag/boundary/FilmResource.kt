@@ -13,7 +13,7 @@ import javax.ws.rs.core.MediaType
 @Transactional
 @Path("/films")
 class FilmResource(private val filmService: FilmService) {
-    private val logger =  LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+    private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -21,9 +21,11 @@ class FilmResource(private val filmService: FilmService) {
             @DefaultValue(missingInt.toString()) @QueryParam("yearFrom") yearFrom: Int,
             @DefaultValue(missingInt.toString()) @QueryParam("yearTo") yearTo: Int,
             @DefaultValue(missingDecimal.toString()) @QueryParam("scoreFrom") scoreFrom: BigDecimal,
-            @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal
+            @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal,
+            @DefaultValue("0") @QueryParam("page") page: Int,
+            @DefaultValue("10") @QueryParam("pageSize") pageSize: Int
     ): List<FilmRequest> {
-        logger.debug("Find by year=<$yearFrom, $yearTo>; score=<$scoreFrom, $scoreTo>")
+        logger.info("Find $page page by year=<$yearFrom, $yearTo>; score=<$scoreFrom, $scoreTo>")
 
         val yearRange = when (Pair(yearFrom, yearTo)) {
             Pair(missingInt, missingInt) -> EmptyRange()
@@ -39,7 +41,7 @@ class FilmResource(private val filmService: FilmService) {
             else -> ClosedRange(scoreFrom, scoreTo)
         }
 
-        return filmService.find(yearRange, scoreRange)
+        return filmService.find(yearRange, scoreRange, page, pageSize)
                 .map { it.convertToRequest() }
     }
 

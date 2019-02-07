@@ -20,7 +20,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.FilmResource
-import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
@@ -94,14 +93,32 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
                 .containsOnly(filmRequest)
     }
 
+    @Test
+    fun `should get paginated films`() {
+        val filmRequest = testFilmRequest()
+        val otherFilmRequest = testOtherFilmRequest()
+
+        executePutRequest(filmRequest, otherFilmRequest)
+
+        assertThat(executeGetRequest(page = 0, pageSize = 1)).containsOnly(filmRequest)
+        assertThat(executeGetRequest(page = 1, pageSize = 1)).containsOnly(otherFilmRequest)
+    }
+
     private fun executeGetRequest(
             yearFrom: Int = FilmResource.missingInt,
             yearTo: Int = FilmResource.missingInt,
             scoreFrom: Double = FilmResource.missingDecimal,
-            scoreTo: Double = FilmResource.missingDecimal): Array<FilmRequest> {
-        return restTemplate.getForObject(
-                "/resources/films?yearFrom=$yearFrom&yearTo=$yearTo&scoreFrom=$scoreFrom&scoreTo=$scoreTo",
-                Array<FilmRequest>::class.java)
+            scoreTo: Double = FilmResource.missingDecimal,
+            page: Int = 0,
+            pageSize: Int = 100): Array<FilmRequest> {
+        val url = "/resources/films" +
+                "?yearFrom=$yearFrom" +
+                "&yearTo=$yearTo" +
+                "&scoreFrom=$scoreFrom" +
+                "&scoreTo=$scoreTo" +
+                "&page=$page" +
+                "&pageSize=$pageSize"
+        return restTemplate.getForObject(url, Array<FilmRequest>::class.java)
     }
 
     private fun executePutRequest(vararg filmRequests: FilmRequest) {
