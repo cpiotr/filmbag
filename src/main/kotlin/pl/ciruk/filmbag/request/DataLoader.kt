@@ -30,6 +30,8 @@ class DataLoader(
     private fun loadDataOrThrow() {
         log.info("Loading data from: {}", url)
         generateSequenceOfFilms()
+                .onEach { it.ifEmpty { log.info("Got empty collection of films. Canceling. ") } }
+                .takeWhile { it.isNotEmpty() }
                 .flatMap { it.asSequence() }
                 .take(limit)
                 .chunked(10)
