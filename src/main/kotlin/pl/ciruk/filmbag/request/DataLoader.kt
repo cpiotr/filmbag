@@ -7,10 +7,11 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.config.asHttpGet
-import pl.ciruk.filmbag.function.logWithoutFallback
+import pl.ciruk.filmbag.function.logWithFallback
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import java.util.function.Supplier
 
 @Service
 class DataLoader(
@@ -21,22 +22,27 @@ class DataLoader(
     private val log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
     private val threadPool = Executors.newSingleThreadExecutor()
 
-    fun importAsync(): CompletableFuture<Void> {
+    fun importAsync(offset: Int = 0): CompletableFuture<Int> {
+        log.info("Import from offset: $offset")
+
         return CompletableFuture
-                .runAsync(Runnable { loadDataOrThrow() }, threadPool)
-                .exceptionally { logWithoutFallback { logError(it) } }
+                .supplyAsync(Supplier { loadDataOrThrow(offset) }, threadPool)
+                .exceptionally { logWithFallback(0) { logError(it) } }
     }
 
-    private fun loadDataOrThrow() {
+    private fun loadDataOrThrow(offset: Int): Int {
         log.info("Loading data from: {}", url)
-        generateSequenceOfFilms()
-                .onEach { it.ifEmpty { log.info("Got empty collection of films. Canceling. ") } }
-                .takeWhile { it.isNotEmpty() }
-                .flatMap { it.asSequence() }
+        var lastPage = offset + 1
+        generateSequenceOfFilms(lastPage)
+                .onEach { it.result.ifEmpty { log.info("Got empty collection of films. Canceling. ") } }
+                .takeWhile { it.result.isNotEmpty() }
+                .onEach { lastPage = it.index }
+                .flatMap { it.result.asSequence() }
                 .take(limit)
                 .chunked(10)
                 .forEach(this::recordAndStore)
-        log.info("Finished loading data")
+        log.info("Finished loading data. Last page was: $lastPage")
+        return lastPage
     }
 
     private fun recordAndStore(filmRequests: List<FilmRequest>) {
@@ -44,18 +50,18 @@ class DataLoader(
         requestProcessor.storeAll(filmRequests)
     }
 
-    private fun generateSequenceOfFilms(): Sequence<List<FilmRequest>> {
-        return generateSequence(1) { it + 1 }
+    private fun generateSequenceOfFilms(offset: Int): Sequence<IndexedResult<List<FilmRequest>>> {
+        return generateSequence(offset) { it + 1 }
                 .map { fetchFilmsFromPage(it) }
     }
 
-    private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
+    private fun fetchFilmsFromPage(index: Int): IndexedResult<List<FilmRequest>> {
         log.debug("Fetch films from {} page", index)
 
         val (_, _, result) = "$url/$index".asHttpGet()
                 .responseObject<List<FilmRequest>>()
         return result.fold(
-                { it },
+                { IndexedResult(index, it) },
                 { error -> throw error }
         )
     }
@@ -70,3 +76,5 @@ class DataLoader(
         }
     }
 }
+
+class IndexedResult<T>(val index: Int, val result: T)
