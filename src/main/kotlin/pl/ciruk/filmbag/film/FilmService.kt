@@ -14,7 +14,7 @@ import javax.annotation.PostConstruct
 @Service
 @Transactional
 class FilmService(private val repository: FilmRepository) {
-    private val logger =  LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+    private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
     private val existingFilmHashes = HashSet<Int>()
 
@@ -37,7 +37,7 @@ class FilmService(private val repository: FilmRepository) {
             score: Range<BigDecimal> = EmptyRange(),
             page: Int = 0,
             pageSize: Int = 10): List<Film> {
-        logger.debug("Find $page page by $year and $score")
+        logger.info("Find by year=$year; score=$score")
 
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }

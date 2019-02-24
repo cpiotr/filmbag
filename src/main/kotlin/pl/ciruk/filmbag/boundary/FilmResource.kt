@@ -25,7 +25,7 @@ class FilmResource(private val filmService: FilmService) {
             @DefaultValue("0") @QueryParam("page") page: Int,
             @DefaultValue("10") @QueryParam("pageSize") pageSize: Int
     ): List<FilmRequest> {
-        logger.info("Find $page page by year=<$yearFrom, $yearTo>; score=<$scoreFrom, $scoreTo>")
+        logger.info("Find $page page of size $pageSize")
 
         val yearRange = when (Pair(yearFrom, yearTo)) {
             Pair(missingInt, missingInt) -> EmptyRange()
@@ -33,7 +33,6 @@ class FilmResource(private val filmService: FilmService) {
             Pair(missingInt, yearTo) -> RightClosedRange(yearTo)
             else -> ClosedRange(yearFrom, yearTo)
         }
-
         val scoreRange = when (Pair(scoreFrom, scoreTo)) {
             Pair(missingDecimal.toBigDecimal(), missingDecimal.toBigDecimal()) -> EmptyRange()
             Pair(scoreFrom, missingDecimal.toBigDecimal()) -> LeftClosedRange(scoreFrom)

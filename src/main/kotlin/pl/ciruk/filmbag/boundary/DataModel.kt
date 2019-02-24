@@ -42,7 +42,15 @@ fun Film.convertToRequest(): FilmRequest {
 }
 
 sealed class Range<in T : Comparable<T>>
-data class LeftClosedRange<T : Comparable<T>>(val from: T) : Range<T>()
-data class RightClosedRange<T : Comparable<T>>(val to: T) : Range<T>()
-data class ClosedRange<T : Comparable<T>>(val from: T, val to: T) : Range<T>()
-class EmptyRange<T : Comparable<T>> : Range<T>()
+data class LeftClosedRange<T : Comparable<T>>(val from: T) : Range<T>() {
+    override fun toString() = "<$from, ∞)"
+}
+data class RightClosedRange<T : Comparable<T>>(val to: T) : Range<T>() {
+    override fun toString() = "(∞, $to>"
+}
+data class ClosedRange<T : Comparable<T>>(val from: T, val to: T) : Range<T>() {
+    override fun toString() = "<$from, $to>"
+}
+class EmptyRange<T : Comparable<T>> : Range<T>() {
+    override fun toString() = "<>"
+}
