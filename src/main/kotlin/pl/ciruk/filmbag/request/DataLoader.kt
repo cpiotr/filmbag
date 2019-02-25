@@ -31,7 +31,7 @@ class DataLoader(
     }
 
     private fun loadDataOrThrow(offset: Int): Int {
-        log.info("Loading data from: {}", url)
+        log.info("Loading data from: $url")
         var lastPage = offset + 1
         generateSequenceOfFilms(lastPage)
                 .onEach { it.result.ifEmpty { log.info("Got empty collection of films. Canceling. ") } }
@@ -56,7 +56,7 @@ class DataLoader(
     }
 
     private fun fetchFilmsFromPage(index: Int): IndexedResult<List<FilmRequest>> {
-        log.debug("Fetch films from {} page", index)
+        log.debug("Fetch films from $index page")
 
         val (_, _, result) = "$url/$index".asHttpGet()
                 .responseObject<List<FilmRequest>>()

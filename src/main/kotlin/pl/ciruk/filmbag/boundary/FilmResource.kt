@@ -22,10 +22,9 @@ class FilmResource(private val filmService: FilmService) {
             @DefaultValue(missingInt.toString()) @QueryParam("yearTo") yearTo: Int,
             @DefaultValue(missingDecimal.toString()) @QueryParam("scoreFrom") scoreFrom: BigDecimal,
             @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal,
-            @DefaultValue("0") @QueryParam("page") page: Int,
-            @DefaultValue("10") @QueryParam("pageSize") pageSize: Int
-    ): List<FilmRequest> {
-        logger.info("Find $page page of size $pageSize")
+            @DefaultValue(firstPage.toString()) @QueryParam("page") page: Int,
+            @DefaultValue(defaultPageSize.toString()) @QueryParam("pageSize") pageSize: Int): List<FilmRequest> {
+        logger.info("Find page $page of size $pageSize")
 
         val yearRange = createYearRange(yearFrom, yearTo)
         val scoreRange = createScoreRange(scoreFrom, scoreTo)
@@ -55,5 +54,7 @@ class FilmResource(private val filmService: FilmService) {
     companion object {
         const val missingInt = -1
         const val missingDecimal = -1.0
+        const val firstPage = 0
+        const val defaultPageSize = 10
     }
 }
