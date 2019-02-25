@@ -27,21 +27,29 @@ class FilmResource(private val filmService: FilmService) {
     ): List<FilmRequest> {
         logger.info("Find $page page of size $pageSize")
 
-        val yearRange = when (Pair(yearFrom, yearTo)) {
-            Pair(missingInt, missingInt) -> EmptyRange()
-            Pair(yearFrom, missingInt) -> LeftClosedRange(yearFrom)
-            Pair(missingInt, yearTo) -> RightClosedRange(yearTo)
-            else -> ClosedRange(yearFrom, yearTo)
-        }
-        val scoreRange = when (Pair(scoreFrom, scoreTo)) {
+        val yearRange = createYearRange(yearFrom, yearTo)
+        val scoreRange = createScoreRange(scoreFrom, scoreTo)
+
+        return filmService.find(yearRange, scoreRange, page, pageSize)
+                .map { it.convertToRequest() }
+    }
+
+    private fun createScoreRange(scoreFrom: BigDecimal, scoreTo: BigDecimal): Range<BigDecimal> {
+        return when (Pair(scoreFrom, scoreTo)) {
             Pair(missingDecimal.toBigDecimal(), missingDecimal.toBigDecimal()) -> EmptyRange()
             Pair(scoreFrom, missingDecimal.toBigDecimal()) -> LeftClosedRange(scoreFrom)
             Pair(missingDecimal.toBigDecimal(), scoreTo) -> RightClosedRange(scoreTo)
             else -> ClosedRange(scoreFrom, scoreTo)
         }
+    }
 
-        return filmService.find(yearRange, scoreRange, page, pageSize)
-                .map { it.convertToRequest() }
+    private fun createYearRange(yearFrom: Int, yearTo: Int): Range<Int> {
+        return when (Pair(yearFrom, yearTo)) {
+            Pair(missingInt, missingInt) -> EmptyRange()
+            Pair(yearFrom, missingInt) -> LeftClosedRange(yearFrom)
+            Pair(missingInt, yearTo) -> RightClosedRange(yearTo)
+            else -> ClosedRange(yearFrom, yearTo)
+        }
     }
 
     companion object {
