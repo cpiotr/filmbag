@@ -1,6 +1,11 @@
 # filmbag
 Bag of films
 
+## Building
+```
+./gradlew clean build
+```
+
 ## Running
 ```
 docker-compose build
