@@ -4,7 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.function.logWithoutFallback
+import pl.ciruk.filmbag.function.runWithoutFallback
 import java.lang.invoke.MethodHandles
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
@@ -21,7 +21,7 @@ class Journal(
     fun recordAsync(films: List<FilmRequest>) {
         CompletableFuture
                 .runAsync(Runnable { record(films) }, threadPool)
-                .exceptionally { logWithoutFallback { logger.error("Cannot record $it") } }
+                .exceptionally { runWithoutFallback { logger.error("Cannot record $it") } }
     }
 
     fun record(films: List<FilmRequest>) {

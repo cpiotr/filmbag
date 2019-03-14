@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.config.asHttpGet
-import pl.ciruk.filmbag.function.logWithFallback
+import pl.ciruk.filmbag.function.runWithFallback
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -27,7 +27,7 @@ class DataLoader(
 
         return CompletableFuture
                 .supplyAsync(Supplier { loadDataOrThrow(offset) }, threadPool)
-                .exceptionally { logWithFallback(0) { logError(it) } }
+                .exceptionally { runWithFallback(0) { logError(it) } }
     }
 
     private fun loadDataOrThrow(offset: Int): Int {

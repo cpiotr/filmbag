@@ -2,6 +2,7 @@ package pl.ciruk.filmbag.boundary
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import pl.ciruk.filmbag.function.runWithoutFallback
 import pl.ciruk.filmbag.request.DataLoader
 import java.lang.invoke.MethodHandles
 import javax.ws.rs.DefaultValue
@@ -27,8 +28,9 @@ class ImportResource(private val dataLoader: DataLoader) {
         dataLoader.importAsync(offset ?: 0)
                 .thenAccept { asyncResponse.resume(Response.accepted(it).build()) }
                 .exceptionally {
-                    asyncResponse.resume(Response.serverError().entity(it).build())
-                    null
+                    runWithoutFallback {
+                        asyncResponse.resume(Response.serverError().entity(it).build())
+                    }
                 }
     }
 }
