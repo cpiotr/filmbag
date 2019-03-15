@@ -29,7 +29,9 @@ class ImportResource(private val dataLoader: DataLoader) {
                 .thenAccept { asyncResponse.resume(Response.accepted(it).build()) }
                 .exceptionally {
                     runWithoutFallback {
-                        asyncResponse.resume(Response.serverError().entity(it).build())
+                        logger.error("Cannot import data at offset $offset", it)
+                        val response = Response.serverError().entity(it.message).build()
+                        asyncResponse.resume(response)
                     }
                 }
     }
