@@ -3,7 +3,6 @@ package pl.ciruk.filmbag.integration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -11,10 +10,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
-import org.springframework.data.redis.connection.RedisConnectionFactory
-import org.springframework.data.redis.core.RedisKeyValueAdapter
-import org.springframework.data.redis.core.RedisTemplate
-import org.springframework.data.redis.core.ValueOperations
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.FilmBagApplication
@@ -23,6 +18,7 @@ import pl.ciruk.filmbag.boundary.FilmResource
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
+import redis.clients.jedis.JedisPool
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -136,21 +132,7 @@ class TestConfiguration {
 
     @Bean
     @Primary
-    fun testRedisConnectionFactory(): RedisConnectionFactory {
-        return mock(RedisConnectionFactory::class.java)
-    }
-
-    @Bean
-    @Primary
-    fun testRedisTemplate(): RedisTemplate<ByteArray, ByteArray> {
-        val redisTemplate = mock(RedisTemplate::class.java)
-
-        doReturn(mock(ValueOperations::class.java)).`when`(redisTemplate).opsForValue()
-        return redisTemplate as RedisTemplate<ByteArray, ByteArray>
-    }
-
-    @Bean
-    fun testRedisKeyValueAdapter(): RedisKeyValueAdapter {
-        return mock(RedisKeyValueAdapter::class.java)
+    fun testJedisPool(): JedisPool {
+        return mock(JedisPool::class.java)
     }
 }

@@ -31,6 +31,14 @@ class JournalTest(@Autowired val journal: Journal) {
         assertThat(replayedRequests)
                 .containsExactly(expectedRequests)
     }
+
+    @Test
+    fun `should replay empty journal`() {
+        val replayedRequests = journal.replay().toList()
+
+        assertThat(replayedRequests)
+                .isEmpty()
+    }
 }
 
 @Component

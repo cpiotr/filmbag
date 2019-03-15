@@ -1,10 +1,10 @@
 package pl.ciruk.filmbag.request
 
 import org.slf4j.LoggerFactory
-import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.function.runWithoutFallback
+import redis.clients.jedis.JedisPool
 import java.lang.invoke.MethodHandles
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
@@ -12,7 +12,7 @@ import java.util.concurrent.Executors
 
 @Service
 class Journal(
-        private val redisTemplate: RedisTemplate<ByteArray, ByteArray>,
+        private val redisPool: JedisPool,
         private val journalSerializer: JournalSerializer) {
     private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
     private val threadPool = Executors.newSingleThreadExecutor()
@@ -28,21 +28,35 @@ class Journal(
         val serializedRequest = journalSerializer.serialize(films)
         val key = digest.digest(serializedRequest)
 
-        redisTemplate.opsForValue()[key] = serializedRequest
+        redisPool.resource.use {
+            it.set(key, serializedRequest)
+        }
         logger.info("Record (key={}, size={})", bytesToHex(key), serializedRequest.size)
     }
 
     fun replay(): Sequence<List<FilmRequest>> {
         val keys = findAllKeys()
+        if (keys.isEmpty()) {
+            logger.info("Nothing to replay. Empty journal")
+            return emptySequence()
+        }
+
         logger.info("Replaying ${keys.size} requests")
-        return redisTemplate.opsForValue()
-                .multiGet(keys)
-                .orEmpty()
-                .asSequence()
-                .map(journalSerializer::deserialize)
+        redisPool.resource.use {
+            return it.mget(*keys)
+                    .asSequence()
+                    .map(journalSerializer::deserialize)
+
+        }
     }
 
-    private fun findAllKeys() = redisTemplate.keys("*".toByteArray())
+    private fun findAllKeys(): Array<ByteArray> {
+        redisPool.resource.use {
+            val allKeys = "*".toByteArray()
+            return it.keys(allKeys).toTypedArray()
+
+        }
+    }
 
     private fun bytesToHex(hash: ByteArray): String {
         return hash.asSequence()

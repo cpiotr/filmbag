@@ -9,12 +9,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.data.redis.connection.RedisConnectionFactory
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration
-import org.springframework.data.redis.connection.jedis.JedisClientConfiguration
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory
-import org.springframework.data.redis.core.RedisTemplate
-import org.springframework.data.redis.serializer.RedisSerializer
+import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
 import javax.sql.DataSource
 
@@ -41,46 +36,19 @@ class Connections {
     }
 
     @Bean
-    fun redisConnectionFactory(
+    fun redisConnectionPool(
             @Value("\${redis.host}") redisHost: String,
             @Value("\${redis.port}") redisPort: Int,
-            @Value("\${redis.pool.maxActive:8}") redisPoolMaxActive: Int): RedisConnectionFactory {
-        logConfiguration("Redis connection", "$redisHost:$redisPort")
-        val redisStandaloneConfiguration = RedisStandaloneConfiguration(redisHost, redisPort)
-
+            @Value("\${redis.pool.maxActive:8}") redisPoolMaxActive: Int): JedisPool {
         val poolConfig = JedisPoolConfig()
         poolConfig.maxTotal = redisPoolMaxActive
         poolConfig.maxWaitMillis = 1000
         poolConfig.minEvictableIdleTimeMillis = 100
-        val jedisClientConfiguration = JedisClientConfiguration.builder()
-                .usePooling()
-                .poolConfig(poolConfig)
-                .build()
-
-        return JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration)
-    }
-
-    @Bean
-    fun redisTemplate(redisConnectionFactory: RedisConnectionFactory): RedisTemplate<ByteArray, ByteArray> {
-        val redisTemplate = RedisTemplate<ByteArray, ByteArray>()
-        redisTemplate.setConnectionFactory(redisConnectionFactory)
-        redisTemplate.keySerializer = NoopSerializer()
-        redisTemplate.valueSerializer = NoopSerializer()
-        return redisTemplate
+        return JedisPool(poolConfig, redisHost, redisPort)
     }
 
     private fun logConfiguration(name: String, value: String) {
         logger.info("$name: <$value>")
-    }
-
-    class NoopSerializer : RedisSerializer<ByteArray> {
-        override fun serialize(t: ByteArray?): ByteArray? {
-            return t
-        }
-
-        override fun deserialize(bytes: ByteArray?): ByteArray? {
-            return bytes
-        }
     }
 }
 
