@@ -40,7 +40,6 @@ dependencies {
     compile("redis.clients:jedis:$jedisVersion")
 
     compile("org.springframework.boot:spring-boot-starter-jersey")
-    compile("javax.activation:activation:$javaxActivationVersion")
     compile("javax.xml.bind:jaxb-api:$jaxbVersion")
 
     compile("com.fasterxml.jackson.module:jackson-module-kotlin")
