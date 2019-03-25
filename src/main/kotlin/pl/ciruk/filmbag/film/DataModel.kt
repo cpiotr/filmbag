@@ -1,5 +1,9 @@
 package pl.ciruk.filmbag.film
 
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
+import pl.ciruk.filmbag.film.Genres.autoIncrement
+import pl.ciruk.filmbag.film.Genres.primaryKey
 import java.time.ZonedDateTime
 import java.util.*
 import javax.persistence.*
@@ -75,3 +79,32 @@ data class Score(
 data class Genre(
         @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
         val name: String)
+
+object Films : org.jetbrains.exposed.sql.Table("film") {
+    val id = long("id").autoIncrement().primaryKey()
+    val created = datetime("created").default(DateTime.now(DateTimeZone.UTC))
+    val title = varchar("title", 512)
+    val year = integer("year")
+    val plot = varchar("plot", 2048).nullable()
+    val poster = varchar("poster", 2048).nullable()
+    val score = decimal("score", 38, 10)
+    val hash = integer("hash")
+}
+
+object Genres : org.jetbrains.exposed.sql.Table("genre") {
+    val id = long("id").autoIncrement().primaryKey()
+    val name = varchar("name", 512)
+}
+
+object FilmGenres : org.jetbrains.exposed.sql.Table("film_genres") {
+    val filmId = (long("film_id") references Films.id)
+    val genresId = (long("genres_id") references Genres.id)
+}
+
+object Scores : org.jetbrains.exposed.sql.Table("score") {
+    val id = long("id").autoIncrement().primaryKey()
+    val url = varchar("url", 2048).nullable()
+    val grade = decimal("grade", 38, 10)
+    val quantity = long("quantity")
+    val filmId = (long("film_id") references Films.id)
+}
