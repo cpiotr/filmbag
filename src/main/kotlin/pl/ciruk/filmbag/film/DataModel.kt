@@ -1,11 +1,14 @@
 package pl.ciruk.filmbag.film
 
+import org.jetbrains.exposed.sql.ResultRow
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import pl.ciruk.filmbag.film.Genres.autoIncrement
 import pl.ciruk.filmbag.film.Genres.primaryKey
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.persistence.*
 import javax.persistence.CascadeType.*
 import javax.persistence.GenerationType.SEQUENCE
@@ -107,4 +110,31 @@ object Scores : org.jetbrains.exposed.sql.Table("score") {
     val grade = decimal("grade", 38, 10)
     val quantity = long("quantity")
     val filmId = (long("film_id") references Films.id)
+}
+
+fun convertToFilm(row: ResultRow): Film {
+    return Film(
+            id = row[Films.id],
+            created = convertToZonedDateTime(row[Films.created]),
+            title = row[Films.title],
+            year = row[Films.year],
+            plot = row[Films.plot],
+            poster = row[Films.poster],
+            score = row[Films.score].toDouble(),
+            hash = row[Films.hash],
+            link = "http://missing"
+    )
+}
+
+fun convertToZonedDateTime(dateTime: DateTime): ZonedDateTime {
+    return ZonedDateTime.of(
+            dateTime.year,
+            dateTime.monthOfYear,
+            dateTime.dayOfMonth,
+            dateTime.hourOfDay,
+            dateTime.minuteOfHour,
+            dateTime.secondOfMinute,
+            TimeUnit.MILLISECONDS.toNanos(dateTime.millisOfSecond.toLong()).toInt(),
+            ZoneId.of(dateTime.zone.id)
+    )
 }
