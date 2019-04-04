@@ -1,8 +1,7 @@
 package pl.ciruk.filmbag.film
 
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -11,11 +10,10 @@ import pl.ciruk.filmbag.boundary.ClosedRange
 import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
 import javax.annotation.PostConstruct
-import javax.sql.DataSource
 
 @Service
 @Transactional
-class FilmService(private val repository: FilmRepository, private val dataSource: DataSource) {
+class FilmService(private val repository: FilmRepository) {
     private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
     private val existingFilmHashes = HashSet<Int>()
@@ -41,31 +39,20 @@ class FilmService(private val repository: FilmRepository, private val dataSource
             pageSize: Int = 10): List<Film> {
         logger.info("Find by year=$year; score=$score")
 
-        val allClauses = listOfNotNull(createSpecification2(score, Films.score), createSpecification2(year, Films.year))
+        val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
+                .mapNotNull { createSpecification(it.first, it.second) }
 
-        Database.connect(dataSource)
-        return if (allClauses.isEmpty()) {
-            transaction {
-                Films.selectAll()
-                        .limit(pageSize, pageSize * page)
-                        .map { convertToFilm(it) }
-            }
+        val pageRequest = PageRequest.of(page, pageSize)
+
+        return if (allSpecifications.isEmpty()) {
+            repository
+                    .findAll(pageRequest)
+                    .content
         } else {
-            transaction {
-                Films.innerJoin(Scores, onColumn = { Films.id }, otherColumn = { Scores.filmId })
-                        .select(allClauses.reduceRight(Op<Boolean>::and))
-                        .limit(pageSize, pageSize * page)
-                        .map { convertToFilm(it) }
-            }
-        }
-    }
-
-    private fun <T : Comparable<T>> createSpecification2(range: Range<T>, column: Column<out T>): Op<Boolean>? {
-        return when (range) {
-            is LeftClosedRange -> Op.build { column greaterEq range.from }
-            is RightClosedRange -> Op.build { column lessEq range.to }
-            is ClosedRange -> Op.build { column.between(range.from, range.to) }
-            is EmptyRange -> null
+            val specification = allSpecifications.reduce { first, second -> first.and(second) }
+            repository
+                    .findAll(specification, pageRequest)
+                    .content
         }
     }
 
