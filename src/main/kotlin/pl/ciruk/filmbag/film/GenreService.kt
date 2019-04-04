@@ -3,6 +3,7 @@ package pl.ciruk.filmbag.film
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import javax.annotation.PostConstruct
 
 
@@ -22,12 +23,14 @@ class GenreService(private val genreRepository: GenreRepository) {
         return genreRepository.findAll()
     }
 
+    @Transactional
     fun merge(genres: Iterable<String>): Set<Genre> {
         val newGenres = genres.filterNot { genreByName.containsKey(it) }.map { Genre(name = it) }
         val existingGenres = genres.mapNotNull { genreByName[it] }
         return (store(newGenres) + existingGenres).toSet()
     }
 
+    @Transactional
     private fun store(genres: Iterable<Genre>): Iterable<Genre> {
         val saved = genreRepository.saveAll(genres)
         cacheAll(saved)
