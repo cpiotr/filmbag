@@ -17,8 +17,16 @@ data class Film(
         val link: String,
         val poster: String? = null,
         val score: Double,
-        @OneToMany(cascade = [PERSIST, MERGE], mappedBy = "film") val scores: MutableSet<Score> = mutableSetOf(),
-        @ManyToMany val genres: Set<Genre> = setOf(),
+
+        @OneToMany(cascade = [PERSIST, MERGE], mappedBy = "film")
+        val scores: MutableSet<Score> = mutableSetOf(),
+
+        @ManyToMany
+        @JoinTable(name = "film_genres",
+                joinColumns = [JoinColumn(name = "genres_id")],
+                inverseJoinColumns = [JoinColumn(name = "film_id")])
+        val genres: Set<Genre> = mutableSetOf(),
+
         val hash: Int = Objects.hash(title, year, genres.map { it.name })) {
     fun addScore(grade: Double, quantity: Long, url: String?) {
         val newScore = Score(grade = grade, quantity = quantity, url = url, film = this)
