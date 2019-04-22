@@ -15,6 +15,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.FilmResource
+import pl.ciruk.filmbag.film.Genre
+import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
@@ -25,7 +27,9 @@ import redis.clients.jedis.JedisPool
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         classes = [FilmBagApplication::class, TestConfiguration::class])
-class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTemplate) {
+class RequestProcessorIntegrationTest(
+        @Autowired val restTemplate: TestRestTemplate,
+        @Autowired val genreService: GenreService) {
     @Test
     fun `should get created films`() {
         val filmRequest = testFilmRequest()
@@ -99,6 +103,23 @@ class RequestProcessorIntegrationTest(@Autowired val restTemplate: TestRestTempl
         assertThat(executeGetRequest(page = 0, pageSize = 1)).containsOnly(filmRequest)
         assertThat(executeGetRequest(page = 1, pageSize = 1)).containsOnly(otherFilmRequest)
     }
+
+    @Test
+    fun `should not create duplicate genres`() {
+        assertThat(genreService.findAll())
+                .isEmpty()
+
+        val filmRequest = testFilmRequest(year = 2020)
+        val otherFilmRequest = testOtherFilmRequest(year = 2010)
+        val yetAnotherFilmRequest = testFilmRequest(year = 2021)
+        val nextFilmRequest = testFilmRequest(year = 2030)
+
+        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+
+        assertThat(genreService.findAll().map { it.name })
+                .containsExactlyInAnyOrder("Genre1", "Genre2", "Genre3", "Genre4")
+    }
+
 
     private fun executeGetRequest(
             yearFrom: Int = FilmResource.missingInt,
