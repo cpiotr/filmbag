@@ -120,7 +120,6 @@ class RequestProcessorIntegrationTest(
                 .containsExactlyInAnyOrder("Genre1", "Genre2", "Genre3", "Genre4")
     }
 
-
     private fun executeGetRequest(
             yearFrom: Int = FilmResource.missingInt,
             yearTo: Int = FilmResource.missingInt,
