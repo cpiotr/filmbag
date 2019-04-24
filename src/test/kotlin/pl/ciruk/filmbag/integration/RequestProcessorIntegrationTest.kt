@@ -14,8 +14,7 @@ import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.boundary.FilmResource
-import pl.ciruk.filmbag.film.Genre
+import pl.ciruk.filmbag.boundary.FilmReadResource
 import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
@@ -121,10 +120,10 @@ class RequestProcessorIntegrationTest(
     }
 
     private fun executeGetRequest(
-            yearFrom: Int = FilmResource.missingInt,
-            yearTo: Int = FilmResource.missingInt,
-            scoreFrom: Double = FilmResource.missingDecimal,
-            scoreTo: Double = FilmResource.missingDecimal,
+            yearFrom: Int = FilmReadResource.missingInt,
+            yearTo: Int = FilmReadResource.missingInt,
+            scoreFrom: Double = FilmReadResource.missingDecimal,
+            scoreTo: Double = FilmReadResource.missingDecimal,
             page: Int = 0,
             pageSize: Int = 100): Array<FilmRequest> {
         val url = "/resources/films" +

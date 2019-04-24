@@ -4,15 +4,18 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.FilmService
+import pl.ciruk.filmbag.request.Journal
+import pl.ciruk.filmbag.request.RequestProcessor
 import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
+import javax.ws.rs.core.Response
 
 @Service
 @Transactional
 @Path("/films")
-class FilmResource(private val filmService: FilmService) {
+class FilmReadResource(private val filmService: FilmService) {
     private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
     @GET
@@ -56,5 +59,20 @@ class FilmResource(private val filmService: FilmService) {
         const val missingDecimal = -1.0
         const val firstPage = 0
         const val defaultPageSize = 10
+    }
+}
+
+@Service
+@Transactional
+@Path("/films")
+class FilmWriteResource(
+        private val requestProcessor: RequestProcessor,
+        private val journal: Journal) {
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun storeIfAbsent(filmRequests: List<FilmRequest>): Response {
+        journal.recordAsync(filmRequests)
+        requestProcessor.storeAll(filmRequests)
+        return Response.accepted().build()
     }
 }

@@ -19,7 +19,7 @@ class ImportResource(private val dataLoader: DataLoader) {
     private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
     @GET
-    @Path("{offset}")
+    @Path("/{offset}")
     fun import(
             @Suspended asyncResponse: AsyncResponse,
             @PathParam("offset") @DefaultValue("0") offset: Int?) {
