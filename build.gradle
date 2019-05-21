@@ -8,16 +8,18 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-noarg:$kotlinVersion")
         classpath("mysql:mysql-connector-java:$mysqlVersion")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     }
 }
 
 plugins {
-    id "org.flywaydb.flyway" version "5.2.1"
+    id "org.flywaydb.flyway" version "5.2.4"
 }
 
 apply plugin: 'kotlin'
 apply plugin: 'kotlin-spring'
 apply plugin: 'kotlin-jpa'
+apply plugin: 'org.springframework.boot'
 
 group 'pl.ciruk'
 version "${version != 'unspecified' ? version : 'SNAPSHOT'}"
