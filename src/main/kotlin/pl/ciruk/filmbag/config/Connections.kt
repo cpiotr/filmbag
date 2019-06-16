@@ -40,6 +40,8 @@ class Connections {
             @Value("\${redis.host}") redisHost: String,
             @Value("\${redis.port}") redisPort: Int,
             @Value("\${redis.pool.maxActive:8}") redisPoolMaxActive: Int): JedisPool {
+        logConfiguration("Redis URL", "$redisHost:$redisPort")
+
         val poolConfig = JedisPoolConfig()
         poolConfig.maxTotal = redisPoolMaxActive
         poolConfig.maxWaitMillis = 1000
