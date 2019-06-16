@@ -55,6 +55,6 @@ class Connections {
 }
 
 @JvmOverloads
-fun String.asHttpGet(parameters: List<Pair<String, Any?>>? = null): Request = this.httpGet(parameters)
+fun String.asHttpGet(parameters: List<Pair<String, Any?>>? = listOf()): Request = this.httpGet(parameters)
         .timeout(1_000)
         .timeoutRead(30_000)
