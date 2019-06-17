@@ -6,28 +6,24 @@ import com.zaxxer.hikari.HikariDataSource
 import org.mariadb.jdbc.MariaDbDataSource
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
 import javax.sql.DataSource
 
-
 @Configuration
 class Connections {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @ConditionalOnMissingClass("javax.sql.DataSource")
     @Bean
     fun dataSource(
             @Value("\${spring.datasource.url}") url: String,
             @Value("\${db.username}") username: String,
             @Value("\${db.password}") password: String): DataSource {
         logConfiguration("JDBC URL", url)
-
         val ds = HikariDataSource()
-        ds.maximumPoolSize = 100
+        ds.maximumPoolSize = 10
         ds.dataSourceClassName = MariaDbDataSource::class.java.name
         ds.addDataSourceProperty("url", url)
         ds.addDataSourceProperty("user", username)
