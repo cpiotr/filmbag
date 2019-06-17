@@ -9,6 +9,7 @@ import pl.ciruk.filmbag.boundary.*
 import pl.ciruk.filmbag.boundary.ClosedRange
 import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
+import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.PostConstruct
 
 @Service
@@ -16,15 +17,13 @@ import javax.annotation.PostConstruct
 class FilmService(private val repository: FilmRepository) {
     private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
-    private val existingFilmHashes = HashSet<Int>()
+    private val existingFilmHashes = ConcurrentHashMap.newKeySet<Int>()
 
     fun store(film: Film) {
         val added = existingFilmHashes.add(film.hash)
-        if (!added) {
-            return
+        if (added) {
+            repository.save(film)
         }
-
-        repository.save(film)
     }
 
     fun storeAll(films: List<Film>) {

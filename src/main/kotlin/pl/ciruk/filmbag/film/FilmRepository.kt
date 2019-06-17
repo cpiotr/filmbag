@@ -7,5 +7,4 @@ import javax.persistence.EntityManager
 
 @Repository
 class FilmRepository(@Autowired val entityManager: EntityManager)
-    : SimpleJpaRepository<Film, Long>(Film::class.java, entityManager) {
-}
+    : SimpleJpaRepository<Film, Long>(Film::class.java, entityManager)
