@@ -3,8 +3,8 @@ package pl.ciruk.filmbag.config
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.httpGet
 import com.zaxxer.hikari.HikariDataSource
+import mu.KotlinLogging
 import org.mariadb.jdbc.MariaDbDataSource
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -14,7 +14,7 @@ import javax.sql.DataSource
 
 @Configuration
 class Connections {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
     @Bean
     fun dataSource(
@@ -46,7 +46,7 @@ class Connections {
     }
 
     private fun logConfiguration(name: String, value: String) {
-        logger.info("$name: <$value>")
+        logger.info { "$name: <$value>" }
     }
 }
 

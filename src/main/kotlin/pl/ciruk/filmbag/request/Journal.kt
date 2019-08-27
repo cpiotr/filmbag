@@ -1,11 +1,10 @@
 package pl.ciruk.filmbag.request
 
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.function.runWithoutFallback
 import redis.clients.jedis.JedisPool
-import java.lang.invoke.MethodHandles
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -14,7 +13,7 @@ import java.util.concurrent.Executors
 class Journal(
         private val redisPool: JedisPool,
         private val journalSerializer: JournalSerializer) {
-    private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+    private val logger = KotlinLogging.logger {}
     private val threadPool = Executors.newSingleThreadExecutor()
     private val digest = MessageDigest.getInstance("SHA-256")
 
@@ -37,7 +36,7 @@ class Journal(
     fun replay(): Sequence<List<FilmRequest>> {
         val keys = findAllKeys()
         if (keys.isEmpty()) {
-            logger.info("Nothing to replay. Empty journal")
+            logger.info { "Nothing to replay. Empty journal" }
             return emptySequence()
         }
 

@@ -1,13 +1,12 @@
 package pl.ciruk.filmbag.film
 
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.boundary.*
 import pl.ciruk.filmbag.boundary.ClosedRange
-import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
 import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.PostConstruct
@@ -15,7 +14,7 @@ import javax.annotation.PostConstruct
 @Service
 @Transactional
 class FilmService(private val repository: FilmRepository) {
-    private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+    private val logger = KotlinLogging.logger {}
 
     private val existingFilmHashes = ConcurrentHashMap.newKeySet<Int>()
 
@@ -36,7 +35,7 @@ class FilmService(private val repository: FilmRepository) {
             score: Range<BigDecimal> = EmptyRange(),
             page: Int = 0,
             pageSize: Int = 10): List<Film> {
-        logger.info("Find by year=$year; score=$score")
+        logger.info { "Find by year=$year; score=$score" }
 
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }
