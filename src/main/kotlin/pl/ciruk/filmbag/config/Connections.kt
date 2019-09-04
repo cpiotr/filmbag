@@ -2,33 +2,21 @@ package pl.ciruk.filmbag.config
 
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.httpGet
-import com.zaxxer.hikari.HikariDataSource
 import mu.KotlinLogging
-import org.mariadb.jdbc.MariaDbDataSource
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
-import javax.sql.DataSource
+import javax.annotation.PostConstruct
 
 @Configuration
-class Connections {
+class Connections(@Value("\${spring.datasource.url}") private val url: String) {
     private val logger = KotlinLogging.logger {}
 
-    @Bean
-    fun dataSource(
-            @Value("\${spring.datasource.url}") url: String,
-            @Value("\${db.username}") username: String,
-            @Value("\${db.password}") password: String): DataSource {
+    @PostConstruct
+    fun logConnection() {
         logConfiguration("JDBC URL", url)
-        val ds = HikariDataSource()
-        ds.maximumPoolSize = 10
-        ds.dataSourceClassName = MariaDbDataSource::class.java.name
-        ds.addDataSourceProperty("url", url)
-        ds.addDataSourceProperty("user", username)
-        ds.addDataSourceProperty("password", password)
-        return ds
     }
 
     @Bean
