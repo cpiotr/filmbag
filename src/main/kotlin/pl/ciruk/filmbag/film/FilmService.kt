@@ -26,7 +26,7 @@ class FilmService(private val repository: FilmRepository) {
     }
 
     fun storeAll(films: List<Film>) {
-        val notRecorded = films.filterNot { existingFilmHashes.contains(it.hash) }
+        val notRecorded = films.filter { existingFilmHashes.add(it.hash) }
         repository.saveAll(notRecorded)
     }
 
