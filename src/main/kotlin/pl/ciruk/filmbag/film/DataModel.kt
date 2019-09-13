@@ -23,8 +23,8 @@ data class Film(
 
         @ManyToMany
         @JoinTable(name = "film_genres",
-                joinColumns = [JoinColumn(name = "genres_id")],
-                inverseJoinColumns = [JoinColumn(name = "film_id")])
+                joinColumns = [JoinColumn(name = "film_id")],
+                inverseJoinColumns = [JoinColumn(name = "genres_id")])
         val genres: Set<Genre> = mutableSetOf(),
 
         val hash: Int = Objects.hash(title, year, genres.map { it.name })) {
@@ -49,6 +49,10 @@ data class Film(
         var result = id?.hashCode() ?: 0
         result = 31 * result + hash
         return result
+    }
+
+    override fun toString(): String {
+        return "Film(id=$id, title='$title', year=$year)"
     }
 }
 
