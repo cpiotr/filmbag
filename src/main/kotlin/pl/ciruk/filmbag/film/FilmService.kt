@@ -12,12 +12,12 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.PostConstruct
 
 @Service
-@Transactional
 class FilmService(private val repository: FilmRepository) {
     private val logger = KotlinLogging.logger {}
 
     private val existingFilmHashes = ConcurrentHashMap.newKeySet<Int>()
 
+    @Transactional
     fun store(film: Film) {
         val added = existingFilmHashes.add(film.hash)
         if (added) {
@@ -25,6 +25,7 @@ class FilmService(private val repository: FilmRepository) {
         }
     }
 
+    @Transactional
     fun storeAll(films: List<Film>) {
         val notRecorded = films.filter { existingFilmHashes.add(it.hash) }
         repository.saveAll(notRecorded)

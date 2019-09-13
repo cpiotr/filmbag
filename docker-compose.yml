@@ -21,7 +21,7 @@ services:
       hostname: filmbag-app
       environment:
         - JMX_PORT=19999
-        - FILM_PROVIDER_URL=http://192.168.178.206:8080/resources/suggestions
+        - FILM_PROVIDER_URL=http://192.168.122.1:8080/resources/suggestions
         - JDBC_URL=jdbc:mariadb://filmbag-db:3306/db
         - REDIS_HOST=filmbag-redis
         - APP_LOGGING_LEVEL=INFO
