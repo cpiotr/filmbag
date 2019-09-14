@@ -18,14 +18,6 @@ class FilmService(private val repository: FilmRepository) {
     private val existingFilmHashes = ConcurrentHashMap.newKeySet<Int>()
 
     @Transactional
-    fun store(film: Film) {
-        val added = existingFilmHashes.add(film.hash)
-        if (added) {
-            repository.save(film)
-        }
-    }
-
-    @Transactional
     fun storeAll(films: List<Film>) {
         val notRecorded = films.filter { existingFilmHashes.add(it.hash) }
         repository.saveAll(notRecorded)
