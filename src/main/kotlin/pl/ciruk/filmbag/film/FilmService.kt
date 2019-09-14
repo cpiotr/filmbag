@@ -19,8 +19,9 @@ class FilmService(private val repository: FilmRepository) {
 
     @Transactional
     fun storeAll(films: List<Film>) {
-        val notRecorded = films.filter { existingFilmHashes.add(it.hash) }
-        repository.saveAll(notRecorded)
+        val filmsToBeStored = films.filter { existingFilmHashes.add(it.hash) }
+        repository.saveAll(filmsToBeStored)
+        logger.info { "Stored ${filmsToBeStored.size} films" }
     }
 
     fun find(
