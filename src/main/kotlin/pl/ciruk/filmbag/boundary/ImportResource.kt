@@ -4,12 +4,10 @@ import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.function.runWithoutFallback
 import pl.ciruk.filmbag.request.DataLoader
-import javax.ws.rs.DefaultValue
-import javax.ws.rs.GET
-import javax.ws.rs.Path
-import javax.ws.rs.PathParam
+import javax.ws.rs.*
 import javax.ws.rs.container.AsyncResponse
 import javax.ws.rs.container.Suspended
+import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
 @Service
@@ -19,6 +17,7 @@ class ImportResource(private val dataLoader: DataLoader) {
 
     @GET
     @Path("/{offset}")
+    @Produces(MediaType.APPLICATION_JSON)
     fun import(
             @Suspended asyncResponse: AsyncResponse,
             @PathParam("offset") @DefaultValue("0") offset: Int?) {

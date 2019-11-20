@@ -41,7 +41,7 @@ class FilmService(private val repository: FilmRepository) {
                     .findAll(pageRequest)
                     .content
         } else {
-            val specification = allSpecifications.reduce { first, second -> first.and(second) }
+            val specification = allSpecifications.reduce { first, second -> first.and(second)!! }
             repository
                     .findAll(specification, pageRequest)
                     .content

@@ -71,6 +71,7 @@ class FilmWriteResource(
         private val journal: Journal) {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     fun storeIfAbsent(filmRequests: List<FilmRequest>): Response {
         journal.recordAsync(filmRequests)
         requestProcessor.storeAll(filmRequests)

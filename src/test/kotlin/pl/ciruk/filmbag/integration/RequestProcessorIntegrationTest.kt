@@ -29,6 +29,7 @@ import redis.clients.jedis.JedisPool
 class RequestProcessorIntegrationTest(
         @Autowired val restTemplate: TestRestTemplate,
         @Autowired val genreService: GenreService) {
+
     @Test
     fun `should get created films`() {
         val filmRequest = testFilmRequest()
@@ -133,11 +134,15 @@ class RequestProcessorIntegrationTest(
                 "&scoreTo=$scoreTo" +
                 "&page=$page" +
                 "&pageSize=$pageSize"
-        return restTemplate.getForObject(url, Array<FilmRequest>::class.java)
+        return restTemplate
+                .withBasicAuth("user", "password")
+                .getForObject(url, Array<FilmRequest>::class.java)
     }
 
     private fun executePutRequest(vararg filmRequests: FilmRequest) {
-        restTemplate.put("/resources/films", filmRequests)
+        restTemplate
+                .withBasicAuth("user", "password")
+                .put("/resources/films", filmRequests)
     }
 }
 
