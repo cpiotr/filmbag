@@ -1,23 +1,21 @@
 package pl.ciruk.filmbag.boundary
 
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.request.RequestProcessor
-import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
 import javax.ws.rs.*
 import javax.ws.rs.core.MediaType
-import javax.ws.rs.core.Response
+
+private val logger = KotlinLogging.logger {}
 
 @Service
 @Transactional
 @Path("/films")
 class FilmReadResource(private val filmService: FilmService) {
-    private val logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
-
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     fun findAll(
@@ -27,7 +25,7 @@ class FilmReadResource(private val filmService: FilmService) {
             @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal,
             @DefaultValue(firstPage.toString()) @QueryParam("page") page: Int,
             @DefaultValue(defaultPageSize.toString()) @QueryParam("pageSize") pageSize: Int): List<FilmRequest> {
-        logger.info("Find page $page of size $pageSize")
+        logger.info { "Find page $page of size $pageSize" }
 
         val yearRange = createYearRange(yearFrom, yearTo)
         val scoreRange = createScoreRange(scoreFrom, scoreTo)
@@ -71,10 +69,9 @@ class FilmWriteResource(
         private val journal: Journal) {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    fun storeIfAbsent(filmRequests: List<FilmRequest>): Response {
+    fun storeIfAbsent(filmRequests: List<FilmRequest>) {
+        logger.info { "Store ${filmRequests.size} films, if missing" }
         journal.recordAsync(filmRequests)
         requestProcessor.storeAll(filmRequests)
-        return Response.accepted().build()
     }
 }
