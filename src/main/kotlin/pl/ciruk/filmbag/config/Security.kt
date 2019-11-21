@@ -18,6 +18,8 @@ class Security : WebSecurityConfigurerAdapter(false) {
                 ?.authorizeRequests()
                 ?.antMatchers("/resources/*")?.authenticated()
                 ?.and()
+                ?.csrf()?.ignoringAntMatchers("/resources/*")
+                ?.and()
                 ?.httpBasic()
     }
 
