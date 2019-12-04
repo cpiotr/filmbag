@@ -24,6 +24,7 @@ class FilmService(private val repository: FilmRepository) {
         logger.info { "Stored ${filmsToBeStored.size} films" }
     }
 
+    @Transactional
     fun find(
             year: Range<Int> = EmptyRange(),
             score: Range<BigDecimal> = EmptyRange(),

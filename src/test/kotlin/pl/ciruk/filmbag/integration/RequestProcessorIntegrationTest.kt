@@ -16,6 +16,7 @@ import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.FilmReadResource
 import pl.ciruk.filmbag.film.GenreService
+import pl.ciruk.filmbag.film.ScoreType
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
@@ -118,6 +119,20 @@ class RequestProcessorIntegrationTest(
 
         assertThat(genreService.findAll().map { it.name })
                 .containsExactlyInAnyOrder("Genre1", "Genre2", "Genre3", "Genre4")
+    }
+
+    @Test
+    fun `should map score types`() {
+        assertThat(genreService.findAll())
+                .isEmpty()
+
+        val filmRequest = testFilmRequest(year = 2020)
+
+        executePutRequest(filmRequest)
+        val foundFilms = executeGetRequest(page = 0, pageSize = 1)
+
+        val foundScoreTypes = foundFilms.flatMap { it.scores }.map { it.type }
+        assertThat(foundScoreTypes).containsOnlyElementsOf(ScoreType.values().map { it.name })
     }
 
     private fun executeGetRequest(

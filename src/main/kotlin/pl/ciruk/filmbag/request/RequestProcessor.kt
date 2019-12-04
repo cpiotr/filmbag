@@ -7,6 +7,7 @@ import pl.ciruk.filmbag.boundary.ScoreRequest
 import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.GenreService
+import pl.ciruk.filmbag.film.ScoreType
 
 @Service
 @Transactional
@@ -34,7 +35,15 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
         )
         filmRequest.scores
                 .filter(ScoreRequest::isValid)
-                .forEach { film.addScore(it.grade!!, it.quantity!!, it.url!!) }
+                .forEach { film.addScore(it.grade!!, it.quantity!!, convertToScoreType(it.type), it.url!!) }
         return film
     }
+
+    private fun convertToScoreType(type: String?): ScoreType {
+        return when (type) {
+            null -> ScoreType.UNKNOWN
+            else -> ScoreType.valueOf(type)
+        }
+    }
+
 }

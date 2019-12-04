@@ -28,8 +28,8 @@ data class Film(
         val genres: Set<Genre> = mutableSetOf(),
 
         val hash: Int = Objects.hash(title, year, genres.map { it.name })) {
-    fun addScore(grade: Double, quantity: Long, url: String?) {
-        val newScore = Score(grade = grade, quantity = quantity, url = url, film = this)
+    fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?) {
+        val newScore = Score(grade = grade, quantity = quantity, url = url, type = type, film = this)
         scores.add(newScore)
     }
 
@@ -59,6 +59,7 @@ data class Film(
 @Entity
 data class Score(
         @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
+        @Enumerated(EnumType.STRING) val type: ScoreType,
         val grade: Double,
         val quantity: Long,
         val url: String? = null,
@@ -88,3 +89,10 @@ data class Score(
 data class Genre(
         @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
         val name: String)
+
+enum class ScoreType {
+    AMATEUR,
+    CRITIC,
+    UNKNOWN,
+    ;
+}
