@@ -16,7 +16,7 @@ class Connections(@Value("\${spring.datasource.url}") private val url: String) {
 
     @PostConstruct
     fun logConnection() {
-        logConfiguration("JDBC URL", url)
+        logger.logConfiguration("JDBC URL", url)
     }
 
     @Bean
@@ -24,17 +24,13 @@ class Connections(@Value("\${spring.datasource.url}") private val url: String) {
             @Value("\${redis.host}") redisHost: String,
             @Value("\${redis.port}") redisPort: Int,
             @Value("\${redis.pool.maxActive:8}") redisPoolMaxActive: Int): JedisPool {
-        logConfiguration("Redis URL", "$redisHost:$redisPort")
+        logger.logConfiguration("Redis URL", "$redisHost:$redisPort")
 
         val poolConfig = JedisPoolConfig()
         poolConfig.maxTotal = redisPoolMaxActive
         poolConfig.maxWaitMillis = 1000
         poolConfig.minEvictableIdleTimeMillis = 100
         return JedisPool(poolConfig, redisHost, redisPort)
-    }
-
-    private fun logConfiguration(name: String, value: String) {
-        logger.info { "$name: <$value>" }
     }
 }
 

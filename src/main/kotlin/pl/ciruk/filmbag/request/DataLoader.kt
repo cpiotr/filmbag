@@ -7,10 +7,12 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.config.asHttpGet
+import pl.ciruk.filmbag.config.logConfiguration
 import pl.ciruk.filmbag.function.runWithFallback
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.function.Supplier
+import javax.annotation.PostConstruct
 
 @Service
 class DataLoader(
@@ -20,6 +22,12 @@ class DataLoader(
         @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val logger = KotlinLogging.logger {}
     private val threadPool = Executors.newSingleThreadExecutor()
+
+    @PostConstruct
+    fun logConfiguration() {
+        logger.logConfiguration("Film provider URL", url)
+        logger.logConfiguration("Film provider limit", limit)
+    }
 
     fun importAsync(offset: Int = 0): CompletableFuture<Int> {
         logger.info("Import from offset: $offset")
