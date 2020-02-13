@@ -7,6 +7,7 @@ ARG APP_VERSION=0.0.1
 ENV APP_VERSION=${APP_VERSION}
 ENV JDBC_URL=jdbc:h2:mem:testdb
 ENV FILM_PROVIDER_URL http://192.168.178.206:8080/resources/suggestions
+ENV FILM_PROVIDER_LIMIT 70
 ENV REDIS_HOST localhost
 
 ENV ROOT_LOGGING_LEVEL=INFO
@@ -59,6 +60,7 @@ CMD sh -c " \
 		-Dspring.datasource.url=$JDBC_URL \
 		-Dredis.host=$REDIS_HOST \
 		-Dexternal.provider.filmrequest.url=$FILM_PROVIDER_URL \
+		-Dexternal.provider.filmrequest.limit=$FILM_PROVIDER_LIMIT \
 		$JMX_OPTS \
 		$JVM_OPTS \
 		-jar ./build/libs/filmbag-$APP_VERSION.jar"

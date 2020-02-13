@@ -7,6 +7,7 @@ java \
 		-Dserver.port=$APP_PORT \
 		-Dspring.datasource.url=$JDBC_URL \
 		-Dexternal.provider.filmrequest.url=$FILM_PROVIDER_URL \
+		-Dexternal.provider.filmrequest.limit=$FILM_PROVIDER_LIMIT \
 		$JMX_OPTS \
 		$JVM_OPTS \
 		-jar ./build/libs/filmbag-$APP_VERSION.jar
