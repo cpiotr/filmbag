@@ -39,16 +39,22 @@ class DataLoader(
 
     private fun loadDataOrThrow(offset: Int): Int {
         logger.info("Loading data from: $url")
-        var lastPage = offset + 1
-        generateSequenceOfFilms(lastPage)
-                .onEach { it.result.ifEmpty { logger.info("Got empty collection of films. Canceling. ") } }
-                .takeWhile { it.result.isNotEmpty() }
+        val films = generateSequenceOfFilms(offset + 1)
+        val lastPage = recordAndStoreUpToLimit(films)
+        logger.info("Finished loading data. Last page was: $lastPage")
+        return lastPage
+    }
+
+    fun recordAndStoreUpToLimit(films: Sequence<IndexedResult<List<FilmRequest>>>): Int {
+        var lastPage = -1
+        var numberOfResults = 0
+        films.onEach { it.result.ifEmpty { logger.info("Got empty collection of films. Canceling. ") } }
+                .takeWhile { it.result.isNotEmpty() && numberOfResults < limit }
                 .onEach { lastPage = it.index }
+                .onEach { numberOfResults += it.result.size }
                 .flatMap { it.result.asSequence() }
-                .take(limit)
                 .chunked(10)
                 .forEach(this::recordAndStore)
-        logger.info("Finished loading data. Last page was: $lastPage")
         return lastPage
     }
 
