@@ -50,8 +50,11 @@ class DataLoader(
         var numberOfResults = 0
         films.onEach { it.result.ifEmpty { logger.info("Got empty collection of films. Canceling. ") } }
                 .takeWhile { it.result.isNotEmpty() && numberOfResults < limit }
-                .onEach { lastPage = it.index }
-                .onEach { numberOfResults += it.result.size }
+                .onEach {
+                    lastPage = it.index
+                    numberOfResults += it.result.size
+                    logger.info { "Fetched ${it.result.size} films. Total number: $numberOfResults" }
+                }
                 .flatMap { it.result.asSequence() }
                 .chunked(10)
                 .forEach(this::recordAndStore)
@@ -69,7 +72,7 @@ class DataLoader(
     }
 
     private fun fetchFilmsFromPage(index: Int): IndexedResult<List<FilmRequest>> {
-        logger.debug("Fetch films from $index page")
+        logger.info { "Fetch films from $index page" }
 
         val (_, _, result) = "$url/$index".asHttpGet()
                 .responseObject<List<FilmRequest>>()
@@ -82,7 +85,6 @@ class DataLoader(
     private fun logError(error: Throwable) {
         if (error is FuelError && error.response.statusCode > -1) {
             val response = error.response
-
             logger.error("Error while loading data: {}/{}", response.statusCode, response.responseMessage)
         } else {
             logger.error("Error while loading data", error)
