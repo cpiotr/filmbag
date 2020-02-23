@@ -48,16 +48,20 @@ class DataLoader(
     fun recordAndStoreUpToLimit(films: Sequence<IndexedResult<List<FilmRequest>>>): Int {
         var lastPage = -1
         var numberOfResults = 0
-        films.onEach { it.result.ifEmpty { logger.info("Got empty collection of films. Canceling. ") } }
-                .takeWhile { it.result.isNotEmpty() && numberOfResults < limit }
-                .onEach {
-                    lastPage = it.index
-                    numberOfResults += it.result.size
-                    logger.info { "Fetched ${it.result.size} films. Total number: $numberOfResults" }
-                }
-                .flatMap { it.result.asSequence() }
-                .chunked(10)
-                .forEach(this::recordAndStore)
+        for (film in films) {
+            if (film.result.isEmpty()) {
+                logger.info("Got empty collection of films. Canceling. ")
+                return lastPage
+            }
+
+            lastPage = film.index
+            numberOfResults += film.result.size
+            logger.info { "Fetched ${film.result.size} films. Total number: $numberOfResults" }
+            recordAndStore(film.result)
+            if (numberOfResults >= limit) {
+                return lastPage
+            }
+        }
         return lastPage
     }
 

@@ -2,8 +2,13 @@ package pl.ciruk.filmbag.request
 
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import org.mockito.Mockito.*
+import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.testFilmRequest
+import java.util.function.Supplier
+import java.util.stream.Stream
+import kotlin.streams.asSequence
 
 class DataLoaderTest() {
     private lateinit var requestProcessor: RequestProcessor
@@ -32,7 +37,8 @@ class DataLoaderTest() {
 
         dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
-        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm, thirdFilm))
+        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
+        verify(requestProcessor).storeAll(listOf(thirdFilm))
         verifyNoMoreInteractions(requestProcessor)
     }
 
@@ -53,12 +59,36 @@ class DataLoaderTest() {
 
         dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
-        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm, thirdFilm, fourthFilm))
+        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
+        verify(requestProcessor).storeAll(listOf(thirdFilm, fourthFilm))
         verifyNoMoreInteractions(requestProcessor)
     }
 
     @Test
-    fun `should combine films until empty batch is received`() {
+    fun `should not fetch more batches if limit reached`() {
+        val dataLoader = createDataLoader(2)
+
+        val firstFilm = testFilmRequest(year = 2010)
+        val secondFilm = testFilmRequest(year = 2011)
+        val thirdFilm = testFilmRequest(year = 2012)
+        val fourthFilm = testFilmRequest(year = 2013)
+        val supplier: Supplier<List<FilmRequest>> = mock(Supplier::class.java) as Supplier<List<FilmRequest>>
+        `when`(supplier.get()).thenReturn(listOf(firstFilm, secondFilm)).thenReturn(listOf(thirdFilm))
+
+        val generate = Stream.generate(supplier)
+        val sequenceOfResults = generate
+                .asSequence()
+                .mapIndexed() { index, list -> IndexedResult(index, list) }
+
+        dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+
+        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
+        verify(supplier).get()
+        verifyNoMoreInteractions(requestProcessor)
+    }
+
+    @Test
+    fun `should store films until empty batch is received`() {
         val dataLoader = createDataLoader(10)
 
         val firstFilm = testFilmRequest(year = 2010)
@@ -75,7 +105,8 @@ class DataLoaderTest() {
 
         dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
-        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm, thirdFilm, fourthFilm))
+        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
+        verify(requestProcessor).storeAll(listOf(thirdFilm, fourthFilm))
         verifyNoMoreInteractions(requestProcessor)
     }
 
