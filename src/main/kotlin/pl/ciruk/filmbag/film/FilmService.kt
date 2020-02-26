@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.boundary.*
 import pl.ciruk.filmbag.boundary.ClosedRange
 import java.math.BigDecimal
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.PostConstruct
 
@@ -59,9 +60,28 @@ class FilmService(private val repository: FilmRepository) {
     }
 
     @PostConstruct
+    @Transactional
     private fun load() {
-        repository.findAll()
-                .map { it.hash }
-                .forEach { existingFilmHashes.add(it) }
+        val films = repository.findAll()
+        val updatedFilms = films.map { film -> copyUpdatingHash(film) }
+                .sortedByDescending { it.created }
+                .partition { existingFilmHashes.add(it.hash) }
+        repository.deleteAll(updatedFilms.second)
+        repository.saveAll(updatedFilms.first)
+        repository.flush()
+    }
+
+    private fun copyUpdatingHash(film: Film): Film {
+        return Film(
+                film.id,
+                film.created,
+                film.title, film.year,
+                film.plot,
+                film.link,
+                film.poster,
+                film.score,
+                film.scores,
+                film.genres,
+                Objects.hash(film.title, film.year, film.link))
     }
 }

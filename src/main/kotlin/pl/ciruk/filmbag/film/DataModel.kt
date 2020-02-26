@@ -3,8 +3,7 @@ package pl.ciruk.filmbag.film
 import java.time.ZonedDateTime
 import java.util.*
 import javax.persistence.*
-import javax.persistence.CascadeType.MERGE
-import javax.persistence.CascadeType.PERSIST
+import javax.persistence.CascadeType.*
 import javax.persistence.GenerationType.SEQUENCE
 
 @Entity
@@ -18,7 +17,7 @@ data class Film(
         val poster: String? = null,
         val score: Double,
 
-        @OneToMany(cascade = [PERSIST, MERGE], mappedBy = "film")
+        @OneToMany(cascade = [PERSIST, MERGE, REMOVE], mappedBy = "film")
         val scores: MutableSet<Score> = mutableSetOf(),
 
         @ManyToMany
@@ -27,7 +26,8 @@ data class Film(
                 inverseJoinColumns = [JoinColumn(name = "genres_id")])
         val genres: Set<Genre> = mutableSetOf(),
 
-        val hash: Int = Objects.hash(title, year, genres.map { it.name })) {
+        val hash: Int = Objects.hash(title, year, link)
+) {
     fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?) {
         val newScore = Score(grade = grade, quantity = quantity, url = url, type = type, film = this)
         scores.add(newScore)
