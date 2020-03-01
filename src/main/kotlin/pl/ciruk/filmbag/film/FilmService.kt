@@ -63,25 +63,12 @@ class FilmService(private val repository: FilmRepository) {
     @Transactional
     private fun load() {
         val films = repository.findAll()
-        val updatedFilms = films.map { film -> copyUpdatingHash(film) }
-                .sortedByDescending { it.created }
-                .partition { existingFilmHashes.add(it.hash) }
-        repository.deleteAll(updatedFilms.second)
-        repository.saveAll(updatedFilms.first)
-        repository.flush()
-    }
-
-    private fun copyUpdatingHash(film: Film): Film {
-        return Film(
-                film.id,
-                film.created,
-                film.title, film.year,
-                film.plot,
-                film.link,
-                film.poster,
-                film.score,
-                film.scores,
-                film.genres,
-                Objects.hash(film.title, film.year, film.link))
+        val hashCollisions = films.asSequence()
+                .onEach { existingFilmHashes.add(it.hash) }
+                .groupBy(Film::hash)
+                .filterValues { it.size > 1 }
+        if (hashCollisions.isNotEmpty()) {
+            logger.warn { "Found ${hashCollisions.size} hash collisions" }
+        }
     }
 }
