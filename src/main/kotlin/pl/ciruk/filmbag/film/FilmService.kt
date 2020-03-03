@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.boundary.*
 import pl.ciruk.filmbag.boundary.ClosedRange
 import java.math.BigDecimal
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.PostConstruct
 
@@ -16,11 +15,11 @@ import javax.annotation.PostConstruct
 class FilmService(private val repository: FilmRepository) {
     private val logger = KotlinLogging.logger {}
 
-    private val existingFilmHashes = ConcurrentHashMap.newKeySet<Int>()
+    private val existingFilmHashes = ConcurrentHashMap<Int, Long>()
 
     @Transactional
     fun storeAll(films: List<Film>) {
-        val filmsToBeStored = films.filter { existingFilmHashes.add(it.hash) }
+        val filmsToBeStored = films.filter { existingFilmHashes.containsKey(it.hash) }
         repository.saveAll(filmsToBeStored)
         logger.info { "Stored ${filmsToBeStored.size} films" }
     }
@@ -64,7 +63,7 @@ class FilmService(private val repository: FilmRepository) {
     private fun load() {
         val films = repository.findAll()
         val hashCollisions = films.asSequence()
-                .onEach { existingFilmHashes.add(it.hash) }
+                .onEach { existingFilmHashes[it.hash] = it.id!! }
                 .groupBy(Film::hash)
                 .filterValues { it.size > 1 }
         if (hashCollisions.isNotEmpty()) {
