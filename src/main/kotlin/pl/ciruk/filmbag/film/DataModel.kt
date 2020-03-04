@@ -15,7 +15,7 @@ data class Film(
         val plot: String? = null,
         val link: String,
         val poster: String? = null,
-        val score: Double,
+        var score: Double,
 
         @OneToMany(cascade = [PERSIST, MERGE, REMOVE], mappedBy = "film")
         val scores: MutableSet<Score> = mutableSetOf(),

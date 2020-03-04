@@ -19,9 +19,27 @@ class FilmService(private val repository: FilmRepository) {
 
     @Transactional
     fun storeAll(films: List<Film>) {
-        val filmsToBeStored = films.filter { existingFilmHashes.containsKey(it.hash) }
+        val (filmsToBeUpdated, filmsToBeStored) = films
+                .partition { existingFilmHashes.containsKey(it.hash) }
+
+        val filmsToBeUpdatedById = filmsToBeUpdated.associateBy { it.id }
+        repository.findAllById(filmsToBeUpdated.map { it.id })
+                .onEach {
+                    val film = filmsToBeUpdatedById[it.id]
+                    film?.score?.apply {
+                        it.score = this
+                    }
+                    film?.scores?.apply {
+                        it.scores.clear()
+                        it.scores.addAll(this)
+                    }
+                }
+                .apply { repository.saveAll(this) }
+                .apply { logger.info { "Updated ${this.size} films" } }
+
         repository.saveAll(filmsToBeStored)
-        logger.info { "Stored ${filmsToBeStored.size} films" }
+                .onEach { existingFilmHashes[it.hash] = it.id!! }
+                .apply { logger.info { "Stored ${this.size} films" } }
     }
 
     @Transactional
