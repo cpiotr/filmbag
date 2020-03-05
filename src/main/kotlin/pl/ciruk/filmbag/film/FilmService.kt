@@ -22,8 +22,8 @@ class FilmService(private val repository: FilmRepository) {
         val (filmsToBeUpdated, filmsToBeStored) = films
                 .partition { existingFilmHashes.containsKey(it.hash) }
 
-        val filmsToBeUpdatedById = filmsToBeUpdated.associateBy { it.id }
-        repository.findAllById(filmsToBeUpdated.map { it.id })
+        val filmsToBeUpdatedById = filmsToBeUpdated.associateBy { existingFilmHashes[it.hash] }
+        repository.findAllById(filmsToBeUpdatedById.keys)
                 .onEach {
                     val film = filmsToBeUpdatedById[it.id]
                     film?.score?.apply {

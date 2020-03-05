@@ -15,11 +15,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.FilmReadResource
+import pl.ciruk.filmbag.boundary.ScoreRequest
 import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.film.ScoreType
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
+import pl.ciruk.filmbag.testScoreRequest
 import redis.clients.jedis.JedisPool
 
 @ExtendWith(SpringExtension::class)
@@ -92,6 +94,23 @@ class RequestProcessorIntegrationTest(
         assertThat(arrayOfFilmRequests)
                 .hasSize(1)
                 .containsOnly(filmRequest)
+    }
+
+    @Test
+    fun `should update scores when film request is put twice`() {
+        val filmRequest = testFilmRequest()
+        val updatedFilmRequest = filmRequest.copy(
+                score = filmRequest.score?.plus(1.0),
+                scores = filmRequest.scores.plus(testScoreRequest(0.789, 1234))
+        )
+
+        executePutRequest(filmRequest)
+        executePutRequest(updatedFilmRequest)
+
+        val arrayOfFilmRequests = executeGetRequest()
+        assertThat(arrayOfFilmRequests)
+                .hasSize(1)
+                .containsOnly(updatedFilmRequest)
     }
 
     @Test
