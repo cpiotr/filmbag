@@ -11,8 +11,8 @@ fun testFilmRequest(year: Int = 1912, score: Double = 0.623) = FilmRequest(
         score = score,
         numberOfScores = 4,
         scores = setOf(
-                testScoreRequest(0.7, 123456),
-                testScoreRequest(0.8, 2345),
+                testScoreRequest(0.7, 123456, type = ScoreType.UNKNOWN),
+                testScoreRequest(0.8, 2345, type = ScoreType.AMATEUR),
                 testScoreRequest(0.1, 12, type = ScoreType.CRITIC),
                 testScoreRequest(0.3, 355)),
         genres = setOf("Genre1", "Genre2", "Genre3"),

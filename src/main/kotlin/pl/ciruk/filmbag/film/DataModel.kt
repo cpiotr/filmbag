@@ -17,7 +17,7 @@ data class Film(
         val poster: String? = null,
         var score: Double,
 
-        @OneToMany(cascade = [PERSIST, MERGE, REMOVE], mappedBy = "film")
+        @OneToMany(cascade = [ALL], mappedBy = "film", orphanRemoval = true)
         val scores: MutableSet<Score> = mutableSetOf(),
 
         @ManyToMany
@@ -30,6 +30,11 @@ data class Film(
 ) {
     fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?) {
         val newScore = Score(grade = grade, quantity = quantity, url = url, type = type, film = this)
+        for (score in scores) {
+            if (score.hasSameProperties(newScore)) {
+                return
+            }
+        }
         scores.add(newScore)
     }
 
@@ -63,7 +68,7 @@ data class Score(
         val grade: Double,
         val quantity: Long,
         val url: String? = null,
-        @ManyToOne @JoinColumn(name = "film_id") val film: Film? = null) {
+        @ManyToOne(cascade = [PERSIST, MERGE]) @JoinColumn(name = "film_id") val film: Film? = null) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -83,6 +88,11 @@ data class Score(
         result = 31 * result + quantity.hashCode()
         return result
     }
+
+    fun hasSameProperties(other: Score) = Objects.equals(grade, other.grade)
+            && Objects.equals(quantity, other.quantity)
+            && Objects.equals(type, other.type)
+            && Objects.equals(url, other.url)
 }
 
 @Entity

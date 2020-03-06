@@ -20,7 +20,7 @@ class Journal(
     fun recordAsync(films: List<FilmRequest>) {
         CompletableFuture
                 .runAsync(Runnable { record(films) }, threadPool)
-                .exceptionally { runWithoutFallback { logger.error("Cannot record $it") } }
+                .exceptionally { runWithoutFallback { logger.error(it) { "Cannot record request with ${films.size} films" } } }
     }
 
     fun record(films: List<FilmRequest>) {

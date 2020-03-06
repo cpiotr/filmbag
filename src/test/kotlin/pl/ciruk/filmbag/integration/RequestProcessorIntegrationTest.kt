@@ -13,9 +13,8 @@ import org.springframework.context.annotation.Primary
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import pl.ciruk.filmbag.FilmBagApplication
-import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.FilmReadResource
-import pl.ciruk.filmbag.boundary.ScoreRequest
+import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.film.ScoreType
 import pl.ciruk.filmbag.request.DataLoader
@@ -101,7 +100,8 @@ class RequestProcessorIntegrationTest(
         val filmRequest = testFilmRequest()
         val updatedFilmRequest = filmRequest.copy(
                 score = filmRequest.score?.plus(1.0),
-                scores = filmRequest.scores.plus(testScoreRequest(0.789, 1234))
+                scores = filmRequest.scores.plus(testScoreRequest(0.789, 1234)),
+                numberOfScores = filmRequest.numberOfScores + 1
         )
 
         executePutRequest(filmRequest)
@@ -150,7 +150,10 @@ class RequestProcessorIntegrationTest(
         executePutRequest(filmRequest)
         val foundFilms = executeGetRequest(page = 0, pageSize = 1)
 
-        val foundScoreTypes = foundFilms.flatMap { it.scores }.map { it.type }
+        val foundScoreTypes = foundFilms
+                .flatMap { it.scores }
+                .map { it.type }
+                .toSet()
         assertThat(foundScoreTypes).containsOnlyElementsOf(ScoreType.values().map { it.name })
     }
 

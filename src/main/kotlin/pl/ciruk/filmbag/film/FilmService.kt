@@ -30,8 +30,7 @@ class FilmService(private val repository: FilmRepository) {
                         it.score = this
                     }
                     film?.scores?.apply {
-                        it.scores.clear()
-                        it.scores.addAll(this)
+                        this.forEach{score -> it.addScore(score.grade, score.quantity, score.type, score.url) }
                     }
                 }
                 .apply { repository.saveAll(this) }
