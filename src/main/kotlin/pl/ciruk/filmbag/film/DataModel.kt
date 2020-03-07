@@ -28,14 +28,14 @@ data class Film(
 
         val hash: Int = Objects.hash(title, year, link)
 ) {
-    fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?) {
+    fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?): Boolean {
         val newScore = Score(grade = grade, quantity = quantity, url = url, type = type, film = this)
         for (score in scores) {
             if (score.hasSameProperties(newScore)) {
-                return
+                return false
             }
         }
-        scores.add(newScore)
+        return scores.add(newScore)
     }
 
     override fun equals(other: Any?): Boolean {

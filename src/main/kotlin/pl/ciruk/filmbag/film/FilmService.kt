@@ -24,17 +24,26 @@ class FilmService(private val repository: FilmRepository) {
 
         val filmsToBeUpdatedById = filmsToBeUpdated.associateBy { existingFilmHashes[it.hash] }
         repository.findAllById(filmsToBeUpdatedById.keys)
-                .onEach {
+                .filter {
                     val film = filmsToBeUpdatedById[it.id]
+                    var changed = false
                     film?.score?.apply {
-                        it.score = this
+                        if (it.score != this) {
+                            it.score = this
+                            changed = true
+                        }
                     }
                     film?.scores?.apply {
-                        this.forEach{score -> it.addScore(score.grade, score.quantity, score.type, score.url) }
+                        val scoresChanged = this.map { score -> it.addScore(score.grade, score.quantity, score.type, score.url) }
+                                .fold(false, Boolean::or)
+                        changed = changed.or(scoresChanged)
                     }
+                    changed
                 }
-                .apply { repository.saveAll(this) }
-                .apply { logger.info { "Updated ${this.size} films" } }
+                .apply {
+                    val updated = repository.saveAll(this)
+                    logger.info { "Updated ${updated.size} films" }
+                }
 
         repository.saveAll(filmsToBeStored)
                 .onEach { existingFilmHashes[it.hash] = it.id!! }
