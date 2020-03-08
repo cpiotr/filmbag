@@ -25,20 +25,8 @@ class FilmService(private val repository: FilmRepository) {
         val filmsToBeUpdatedById = filmsToBeUpdated.associateBy { existingFilmHashes[it.hash] }
         repository.findAllById(filmsToBeUpdatedById.keys)
                 .filter {
-                    val film = filmsToBeUpdatedById[it.id]
-                    var changed = false
-                    film?.score?.apply {
-                        if (it.score != this) {
-                            it.score = this
-                            changed = true
-                        }
-                    }
-                    film?.scores?.apply {
-                        val scoresChanged = this.map { score -> it.addScore(score.grade, score.quantity, score.type, score.url) }
-                                .fold(false, Boolean::or)
-                        changed = changed.or(scoresChanged)
-                    }
-                    changed
+                    val film = filmsToBeUpdatedById[it.id] ?: error("Missing film data for id: ${it.id}")
+                    copyScoreFrom(film).invoke(it)
                 }
                 .apply {
                     val updated = repository.saveAll(this)
@@ -81,6 +69,18 @@ class FilmService(private val repository: FilmRepository) {
             is RightClosedRange -> Specification { film, _, builder -> builder.lessThanOrEqualTo(film[propertyName], range.to) }
             is ClosedRange -> Specification { film, _, builder -> builder.between(film[propertyName], range.from, range.to) }
             is EmptyRange -> null
+        }
+    }
+
+    private fun copyScoreFrom(film: Film): (Film) -> Boolean {
+        return {
+            val scoreChanged = if (it.score != film.score) {
+                it.score = film.score
+                true
+            } else false
+            val scoreListModified = film.scores.map { score -> it.addScore(score.grade, score.quantity, score.type, score.url) }
+                    .fold(false, Boolean::or)
+            scoreChanged.or(scoreListModified)
         }
     }
 
