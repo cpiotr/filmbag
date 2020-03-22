@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.boundary.*
 import pl.ciruk.filmbag.boundary.ClosedRange
 import java.math.BigDecimal
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.PostConstruct
 
@@ -88,12 +89,29 @@ class FilmService(private val repository: FilmRepository) {
     @Transactional
     private fun load() {
         val films = repository.findAll()
-        val hashCollisions = films.asSequence()
-                .onEach { existingFilmHashes[it.hash] = it.id!! }
-                .groupBy(Film::hash)
-                .filterValues { it.size > 1 }
-        if (hashCollisions.isNotEmpty()) {
-            logger.warn { "Found ${hashCollisions.size} hash collisions" }
+
+        val filmsToBeUpdated = mutableListOf<Film>()
+        val filmsToBeDeleted = mutableListOf<Film>()
+        films.map { it.copy(hash = Objects.hash(it.title, it.year, it.genres)) }
+                .groupBy { it.hash }
+                .values
+                .map { it.sortedByDescending { film -> film.created } }
+                .forEach {
+                    filmsToBeUpdated.add(it.first())
+                    filmsToBeDeleted.addAll(it.drop(1))
+                }
+
+        if (filmsToBeUpdated.isNotEmpty()) {
+            repository.saveAll(filmsToBeUpdated)
+            logger.info { "Updated ${filmsToBeUpdated.size} films" }
         }
+
+        if (filmsToBeDeleted.isNotEmpty()) {
+            repository.deleteAll(filmsToBeDeleted)
+            logger.info { "Deleted ${filmsToBeDeleted.size} films" }
+        }
+
+        repository.findAll()
+                .forEach{ existingFilmHashes[it.hash] = it.id!!}
     }
 }

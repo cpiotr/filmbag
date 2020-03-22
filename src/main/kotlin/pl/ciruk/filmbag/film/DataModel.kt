@@ -1,5 +1,7 @@
 package pl.ciruk.filmbag.film
 
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 import java.time.ZonedDateTime
 import java.util.*
 import javax.persistence.*
@@ -21,12 +23,13 @@ data class Film(
         val scores: MutableSet<Score> = mutableSetOf(),
 
         @ManyToMany
+        @Fetch(FetchMode.JOIN)
         @JoinTable(name = "film_genres",
                 joinColumns = [JoinColumn(name = "film_id")],
                 inverseJoinColumns = [JoinColumn(name = "genres_id")])
         val genres: Set<Genre> = mutableSetOf(),
 
-        val hash: Int = Objects.hash(title, year, link)
+        val hash: Int = Objects.hash(title, year, genres)
 ) {
     fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?): Boolean {
         val newScore = Score(grade = grade, quantity = quantity, url = url, type = type, film = this)
