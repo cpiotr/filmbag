@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk13:jdk-13.0.2_8-slim
+FROM openjdk:14-alpine3.10
 MAINTAINER c.piotre@gmail.com
 
 VOLUME /tmp
@@ -44,7 +44,8 @@ RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -i'
 EXPOSE ${JMX_PORT}
 EXPOSE ${APP_PORT}
 
-RUN sh -c "apt update && DEBIAN_FRONTEND=noninteractive apt install -y netcat"
+# RUN sh -c "apt update && DEBIAN_FRONTEND=noninteractive apt install -y netcat"
+RUN apk add --update netcat-openbsd && rm -rf /var/cache/apk/*
 
 CMD sh -c " \
     ./gradlew flywayMigrate \

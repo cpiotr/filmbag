@@ -26,6 +26,17 @@ services:
         - JDBC_URL=jdbc:mariadb://filmbag-db:3306/db
         - REDIS_HOST=filmbag-redis
         - APP_LOGGING_LEVEL=INFO
+        - JVM_OPTS=-Xmx1G
+          -Xms1G
+          -Xss2M
+          -XX:+TieredCompilation
+          -XX:InitialCodeCacheSize=128m
+          -XX:ReservedCodeCacheSize=128m
+          -XX:-UseBiasedLocking
+          -XX:+PreserveFramePointer
+          -XX:+UnlockExperimentalVMOptions
+          -XX:+UseZGC
+          -Xlog:gc:stdout:time
       ports:
         - "18080:18080"
         - "19999:19999"
