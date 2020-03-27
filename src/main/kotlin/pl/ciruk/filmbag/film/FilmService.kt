@@ -92,7 +92,7 @@ class FilmService(private val repository: FilmRepository) {
 
         val filmsToBeUpdated = mutableListOf<Film>()
         val filmsToBeDeleted = mutableListOf<Film>()
-        films.map { it.copy(hash = Objects.hash(it.title, it.year, it.genres)) }
+        films.mapNotNull { copyIfHashChanged(it) }
                 .groupBy { it.hash }
                 .values
                 .map { it.sortedByDescending { film -> film.created } }
@@ -112,6 +112,15 @@ class FilmService(private val repository: FilmRepository) {
         }
 
         repository.findAll()
-                .forEach{ existingFilmHashes[it.hash] = it.id!!}
+                .forEach { existingFilmHashes[it.hash] = it.id!! }
+    }
+
+    private fun copyIfHashChanged(it: Film): Film? {
+        val hash = Objects.hash(it.title, it.year, it.genres)
+        return if (hash != it.hash) {
+            it.copy(hash = hash)
+        } else {
+            null
+        }
     }
 }
