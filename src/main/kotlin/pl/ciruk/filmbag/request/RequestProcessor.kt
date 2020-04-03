@@ -30,7 +30,7 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
                 link = filmRequest.link!!,
                 score = filmRequest.score!!,
                 genres = genres,
-                plot = filmRequest.plot,
+                plot = trimToLimit(filmRequest.plot, 512),
                 poster = filmRequest.poster
         )
         filmRequest.scores
@@ -46,4 +46,21 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
         }
     }
 
+}
+
+fun trimToLimit(text: String?, limit: Int): String? {
+    if (limit < 0) {
+        throw IllegalArgumentException("Limit has to be a positive number")
+    }
+
+    if (text == null) {
+        return null
+    }
+
+    return if (text.length > limit) {
+        val suffix = "..."
+        text.substring(0, limit - suffix.length) + suffix
+    } else {
+        text
+    }
 }
