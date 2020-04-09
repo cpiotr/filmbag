@@ -59,6 +59,8 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testCompile("com.h2database:h2:$h2Version")
     testCompile("com.github.kstyrc:embedded-redis:$embeddedRedisVersion")
+    testCompile("org.testcontainers:testcontainers:1.13.0")
+    testCompile("org.testcontainers:junit-jupiter:1.13.0")
 }
 
 compileKotlin {

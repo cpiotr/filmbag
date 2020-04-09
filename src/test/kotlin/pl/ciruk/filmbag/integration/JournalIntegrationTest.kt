@@ -4,23 +4,26 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.stereotype.Component
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.junit.jupiter.SpringExtension
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.testFilmRequest
-import redis.embedded.RedisServer
-import java.io.IOException
-import javax.annotation.PostConstruct
-import javax.annotation.PreDestroy
+
+class KGenericContainer(imageName: String) : GenericContainer<KGenericContainer>(imageName)
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@SpringBootTest(classes = [FilmBagApplication::class, EmbeddedRedis::class])
+@SpringBootTest(classes = [FilmBagApplication::class])
+@Testcontainers
 class JournalTest(@Autowired val journal: Journal) {
+
     @Test
     fun `should record request list to journal and replay it`() {
         val expectedRequests = mutableListOf(testFilmRequest())
@@ -39,24 +42,17 @@ class JournalTest(@Autowired val journal: Journal) {
         assertThat(replayedRequests)
                 .isEmpty()
     }
-}
 
-@Component
-class EmbeddedRedis {
-    @Value("\${redis.port}")
-    private val redisPort: Int = 0
+    companion object {
+        @Container
+        val redis = KGenericContainer("redis:5.0.3-alpine")
+                .withExposedPorts(6379)!!
 
-    private var redisServer: RedisServer? = null
-
-    @PostConstruct
-    @Throws(IOException::class)
-    fun startRedis() {
-        redisServer = RedisServer(redisPort)
-        redisServer!!.start()
-    }
-
-    @PreDestroy
-    fun stopRedis() {
-        redisServer!!.stop()
+        @JvmStatic
+        @DynamicPropertySource
+        fun redisProperties(registry: DynamicPropertyRegistry) {
+            registry.add("redis.host") { redis.containerIpAddress }
+            registry.add("redis.port") { redis.firstMappedPort }
+        }
     }
 }

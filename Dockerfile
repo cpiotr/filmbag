@@ -39,7 +39,7 @@ COPY ./ /filmbag/
 ARG APP_DIR=/filmbag
 ENV APP_DIR=${APP_DIR}
 WORKDIR $APP_DIR
-RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -i'
+RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -x check'
 
 EXPOSE ${JMX_PORT}
 EXPOSE ${APP_PORT}
