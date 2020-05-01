@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.function.Supplier
 import javax.annotation.PostConstruct
+import kotlin.math.max
 
 @Service
 class DataLoader(
@@ -40,24 +41,25 @@ class DataLoader(
     private fun loadDataOrThrow(offset: Int): Int {
         logger.info("Loading data from: $url")
         val films = generateSequenceOfFilms(offset + 1)
-        val lastPage = recordAndStoreUpToLimit(films)
-        logger.info("Finished loading data. Last page was: $lastPage")
-        return lastPage
+        val processedPagesCount = recordAndStoreUpToLimit(films)
+        val lastPageIndex = max(offset + processedPagesCount - 1, 0)
+        logger.info("Finished loading data. Last page was: $lastPageIndex")
+        return lastPageIndex
     }
 
-    fun recordAndStoreUpToLimit(films: Sequence<IndexedResult<List<FilmRequest>>>): Int {
-        var lastPage = -1
+    fun recordAndStoreUpToLimit(sequenceOfFilmBatches: Sequence<List<FilmRequest>>): Int {
+        var lastPage = 0
         var numberOfResults = 0
-        for (film in films) {
-            if (film.result.isEmpty()) {
+        for (filmBatch in sequenceOfFilmBatches) {
+            if (filmBatch.isEmpty()) {
                 logger.info("Got empty collection of films. Canceling. ")
                 return lastPage
             }
 
-            lastPage = film.index
-            numberOfResults += film.result.size
-            logger.info { "Fetched ${film.result.size} films. Total number: $numberOfResults" }
-            recordAndStore(film.result)
+            lastPage += 1
+            numberOfResults += filmBatch.size
+            logger.info { "Fetched ${filmBatch.size} films. Total number: $numberOfResults" }
+            recordAndStore(filmBatch)
             if (numberOfResults >= limit) {
                 return lastPage
             }
@@ -70,18 +72,18 @@ class DataLoader(
         requestProcessor.storeAll(filmRequests)
     }
 
-    private fun generateSequenceOfFilms(offset: Int): Sequence<IndexedResult<List<FilmRequest>>> {
+    private fun generateSequenceOfFilms(offset: Int): Sequence<List<FilmRequest>> {
         return generateSequence(offset) { it + 1 }
                 .map { fetchFilmsFromPage(it) }
     }
 
-    private fun fetchFilmsFromPage(index: Int): IndexedResult<List<FilmRequest>> {
+    private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
         logger.info { "Fetch films from $index page" }
 
         val (_, _, result) = "$url/$index".asHttpGet()
                 .responseObject<List<FilmRequest>>()
         return result.fold(
-                { IndexedResult(index, it) },
+                { it },
                 { error -> throw error }
         )
     }
@@ -95,5 +97,3 @@ class DataLoader(
         }
     }
 }
-
-class IndexedResult<T>(val index: Int, val result: T)

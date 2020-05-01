@@ -1,8 +1,8 @@
 package pl.ciruk.filmbag.request
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
 import org.mockito.Mockito.*
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.testFilmRequest
@@ -13,9 +13,10 @@ import kotlin.streams.asSequence
 class DataLoaderTest() {
     private lateinit var requestProcessor: RequestProcessor
     private lateinit var journal: Journal
+
     @BeforeEach
     fun setUp() {
-        requestProcessor = mock(pl.ciruk.filmbag.request.RequestProcessor::class.java)
+        requestProcessor = mock(RequestProcessor::class.java)
         journal = mock(Journal::class.java)
     }
 
@@ -32,11 +33,11 @@ class DataLoaderTest() {
                 listOf(thirdFilm),
                 listOf(fourthFilm)
         )
-        val sequenceOfResults = listOfResults.mapIndexed { index, list -> IndexedResult(index, list) }
-                .asSequence()
+        val sequenceOfResults = listOfResults.asSequence()
 
-        dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
+        assertThat(numberOfProcessedPages).isEqualTo(2)
         verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
         verify(requestProcessor).storeAll(listOf(thirdFilm))
         verifyNoMoreInteractions(requestProcessor)
@@ -54,11 +55,11 @@ class DataLoaderTest() {
                 listOf(firstFilm, secondFilm),
                 listOf(thirdFilm, fourthFilm)
         )
-        val sequenceOfResults = listOfResults.mapIndexed { index, list -> IndexedResult(index, list) }
-                .asSequence()
+        val sequenceOfResults = listOfResults.asSequence()
 
-        dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
+        assertThat(numberOfProcessedPages).isEqualTo(2)
         verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
         verify(requestProcessor).storeAll(listOf(thirdFilm, fourthFilm))
         verifyNoMoreInteractions(requestProcessor)
@@ -71,17 +72,16 @@ class DataLoaderTest() {
         val firstFilm = testFilmRequest(year = 2010)
         val secondFilm = testFilmRequest(year = 2011)
         val thirdFilm = testFilmRequest(year = 2012)
-        val fourthFilm = testFilmRequest(year = 2013)
         val supplier: Supplier<List<FilmRequest>> = mock(Supplier::class.java) as Supplier<List<FilmRequest>>
         `when`(supplier.get()).thenReturn(listOf(firstFilm, secondFilm)).thenReturn(listOf(thirdFilm))
 
         val generate = Stream.generate(supplier)
         val sequenceOfResults = generate
                 .asSequence()
-                .mapIndexed() { index, list -> IndexedResult(index, list) }
 
-        dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
+        assertThat(numberOfProcessedPages).isEqualTo(1)
         verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
         verify(supplier).get()
         verifyNoMoreInteractions(requestProcessor)
@@ -100,13 +100,28 @@ class DataLoaderTest() {
                 listOf(thirdFilm, fourthFilm),
                 listOf()
         )
-        val sequenceOfResults = listOfResults.mapIndexed { index, list -> IndexedResult(index, list) }
-                .asSequence()
+        val sequenceOfResults = listOfResults.asSequence()
 
-        dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
+        assertThat(numberOfProcessedPages).isEqualTo(2)
         verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
         verify(requestProcessor).storeAll(listOf(thirdFilm, fourthFilm))
+        verifyNoMoreInteractions(requestProcessor)
+    }
+
+    @Test
+    fun `should indicate no processed pages`() {
+        val dataLoader = createDataLoader(10)
+
+        val listOfResults = listOf(
+                listOf<FilmRequest>()
+        )
+        val sequenceOfResults = listOfResults.asSequence()
+
+        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+
+        assertThat(numberOfProcessedPages).isEqualTo(0)
         verifyNoMoreInteractions(requestProcessor)
     }
 
