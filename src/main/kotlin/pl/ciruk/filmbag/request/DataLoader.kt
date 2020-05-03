@@ -1,12 +1,12 @@
 package pl.ciruk.filmbag.request
 
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.jackson.responseObject
+import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.config.asHttpGet
 import pl.ciruk.filmbag.config.logConfiguration
 import pl.ciruk.filmbag.function.runWithFallback
 import java.util.concurrent.CompletableFuture
@@ -15,10 +15,13 @@ import java.util.function.Supplier
 import javax.annotation.PostConstruct
 import kotlin.math.max
 
+
 @Service
 class DataLoader(
         private val requestProcessor: RequestProcessor,
         private val journal: Journal,
+        private val httpClient: OkHttpClient,
+        private val mapper: ObjectMapper,
         @Value("\${external.provider.filmrequest.url}") private val url: String,
         @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val logger = KotlinLogging.logger {}
@@ -80,20 +83,18 @@ class DataLoader(
     private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
         logger.info { "Fetch films from $index page" }
 
-        val (_, _, result) = "$url/$index".asHttpGet()
-                .responseObject<List<FilmRequest>>()
-        return result.fold(
-                { it },
-                { error -> throw error }
-        )
+        val request: Request = Request.Builder()
+                .url(url)
+                .get()
+                .build()
+        return httpClient.newCall(request)
+                .execute()
+                .use { response -> response.body?.string() }
+                ?.map { mapper.readValue(it.toString(), FilmRequest::class.java) }
+                .orEmpty()
     }
 
     private fun logError(error: Throwable) {
-        if (error is FuelError && error.response.statusCode > -1) {
-            val response = error.response
-            logger.error("Error while loading data: {}/{}", response.statusCode, response.responseMessage)
-        } else {
-            logger.error("Error while loading data", error)
-        }
+        logger.error("Error while loading data", error)
     }
 }

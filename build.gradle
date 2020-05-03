@@ -49,8 +49,7 @@ dependencies {
     compile("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     compile("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
-    compile("com.github.kittinunf.fuel:fuel:$fuelVersion")
-    compile("com.github.kittinunf.fuel:fuel-jackson:$fuelVersion")
+    compile("com.squareup.okhttp3:okhttp:4.6.0")
 
     compile("com.esotericsoftware:kryo:$kryoVersion")
 

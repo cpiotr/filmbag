@@ -1,5 +1,7 @@
 package pl.ciruk.filmbag.request
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import okhttp3.OkHttpClient
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -126,6 +128,6 @@ class DataLoaderTest() {
     }
 
     private fun createDataLoader(filmProviderLimit: Int): DataLoader {
-        return DataLoader(requestProcessor, journal, "TestUrl", filmProviderLimit)
+        return DataLoader(requestProcessor, journal, OkHttpClient(), ObjectMapper(), "TestUrl", filmProviderLimit)
     }
 }

@@ -1,13 +1,14 @@
 package pl.ciruk.filmbag.config
 
-import com.github.kittinunf.fuel.core.Request
-import com.github.kittinunf.fuel.httpGet
+import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
+import okhttp3.OkHttpClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
+import java.time.Duration
 import javax.annotation.PostConstruct
 
 @Configuration
@@ -32,9 +33,12 @@ class Connections(@Value("\${spring.datasource.url}") private val url: String) {
         poolConfig.minEvictableIdleTimeMillis = 100
         return JedisPool(poolConfig, redisHost, redisPort)
     }
-}
 
-@JvmOverloads
-fun String.asHttpGet(parameters: List<Pair<String, Any?>>? = listOf()): Request = this.httpGet(parameters)
-        .timeout(1_000)
-        .timeoutRead(30_000)
+    @Bean
+    fun httpClient(objectMapper: ObjectMapper): OkHttpClient {
+        return OkHttpClient.Builder()
+                .readTimeout(Duration.ofSeconds(30))
+                .connectTimeout(Duration.ofSeconds(1))
+                .build()
+    }
+}
