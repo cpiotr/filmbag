@@ -1,9 +1,12 @@
 package pl.ciruk.filmbag.request
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import mu.KotlinLogging
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
@@ -83,18 +86,35 @@ class DataLoader(
     private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
         logger.info { "Fetch films from $index page" }
 
+        val currentUrl = url.toHttpUrl()
+                .newBuilder()
+                .addPathSegment("$index")
+                .build()
         val request: Request = Request.Builder()
-                .url(url)
+                .url(currentUrl)
                 .get()
                 .build()
         return httpClient.newCall(request)
                 .execute()
-                .use { response -> response.body?.string() }
-                ?.map { mapper.readValue(it.toString(), FilmRequest::class.java) }
-                .orEmpty()
+                .use { response -> response.parse() }
     }
 
     private fun logError(error: Throwable) {
         logger.error("Error while loading data", error)
+    }
+
+    private fun Response.parse(): List<FilmRequest> {
+        return if (this.isSuccessful) {
+            this.body
+                    ?.string()
+                    ?.parse()
+                    .orEmpty()
+        } else {
+            emptyList()
+        }
+    }
+
+    private fun String.parse(): List<FilmRequest> {
+        return mapper.readValue(this)
     }
 }
