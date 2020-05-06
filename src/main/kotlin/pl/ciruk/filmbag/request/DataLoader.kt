@@ -7,6 +7,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import okhttp3.ResponseBody
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
@@ -106,7 +107,6 @@ class DataLoader(
     private fun Response.parse(): List<FilmRequest> {
         return if (this.isSuccessful) {
             this.body
-                    ?.string()
                     ?.parse()
                     .orEmpty()
         } else {
@@ -114,7 +114,7 @@ class DataLoader(
         }
     }
 
-    private fun String.parse(): List<FilmRequest> {
-        return mapper.readValue(this)
+    private fun ResponseBody.parse(): List<FilmRequest> {
+        return mapper.readValue(this.string())
     }
 }
