@@ -6,6 +6,7 @@ import pl.ciruk.filmbag.function.runWithoutFallback
 import pl.ciruk.filmbag.request.DataLoader
 import javax.ws.rs.*
 import javax.ws.rs.container.AsyncResponse
+import javax.ws.rs.container.ConnectionCallback
 import javax.ws.rs.container.Suspended
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
@@ -23,14 +24,19 @@ class ImportResource(private val dataLoader: DataLoader) {
             @PathParam("offset") @DefaultValue("0") offset: Int?) {
         logger.info { "Importing from offset: $offset" }
 
-        dataLoader.importAsync(offset ?: 0)
-                .thenAccept { asyncResponse.resume(Response.accepted(it).build()) }
-                .exceptionally {
-                    runWithoutFallback {
-                        logger.error(it) { "Cannot import data at offset $offset" }
-                        val response = Response.serverError().entity(it.message).build()
-                        asyncResponse.resume(response)
-                    }
-                }
+        val future = dataLoader.importAsync(offset ?: 0)
+
+        asyncResponse.register(ConnectionCallback() {
+            logger.info { "Connection cancelled" }
+            future.cancel(true)
+        })
+
+        try {
+            asyncResponse.resume(Response.accepted(future::join).build())
+        } catch (e: Exception) {
+            logger.error(e) { "Cannot import data at offset $offset" }
+            val response = Response.serverError().entity(e.message).build()
+            asyncResponse.resume(response)
+        }
     }
 }
