@@ -85,6 +85,10 @@ class DataLoader(
     }
 
     private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
+        if (Thread.currentThread().isInterrupted) {
+            return emptyList()
+        }
+
         logger.info { "Fetch films from $index page" }
 
         val currentUrl = url.toHttpUrl()
