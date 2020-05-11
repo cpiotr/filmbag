@@ -15,6 +15,7 @@ import pl.ciruk.filmbag.config.logConfiguration
 import pl.ciruk.filmbag.function.runWithFallback
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
 import javax.annotation.PostConstruct
 import kotlin.math.max
@@ -37,17 +38,17 @@ class DataLoader(
         logger.logConfiguration("Film provider limit", limit)
     }
 
-    fun importAsync(offset: Int = 0): CompletableFuture<Int> {
+    fun importAsync(offset: Int = 0, cancelled: AtomicBoolean = AtomicBoolean(false)): CompletableFuture<Int> {
         logger.info("Import from offset: $offset")
 
         return CompletableFuture
-                .supplyAsync(Supplier { loadDataOrThrow(offset) }, threadPool)
+                .supplyAsync(Supplier { loadDataOrThrow(offset, cancelled) }, threadPool)
                 .exceptionally { runWithFallback(0) { logError(it) } }
     }
 
-    private fun loadDataOrThrow(offset: Int): Int {
+    private fun loadDataOrThrow(offset: Int, cancelled: AtomicBoolean): Int {
         logger.info("Loading data from: $url")
-        val films = generateSequenceOfFilms(offset + 1)
+        val films = generateSequenceOfFilms(offset + 1, cancelled)
         val processedPagesCount = recordAndStoreUpToLimit(films)
         val lastPageIndex = max(offset + processedPagesCount - 1, 0)
         logger.info("Finished loading data. Last page was: $lastPageIndex")
@@ -79,12 +80,13 @@ class DataLoader(
         requestProcessor.storeAll(filmRequests)
     }
 
-    private fun generateSequenceOfFilms(offset: Int): Sequence<List<FilmRequest>> {
+    private fun generateSequenceOfFilms(offset: Int, cancelled: AtomicBoolean): Sequence<List<FilmRequest>> {
         return generateSequence(offset) { it + 1 }
-                .map { fetchFilmsFromPage(it) }
+                .takeWhile { !cancelled.get() }
+                .map { fetchFilmsFromPage(it, cancelled) }
     }
 
-    private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
+    private fun fetchFilmsFromPage(index: Int, cancelled: AtomicBoolean): List<FilmRequest> {
         if (Thread.currentThread().isInterrupted) {
             return emptyList()
         }
@@ -105,7 +107,7 @@ class DataLoader(
     }
 
     private fun logError(error: Throwable) {
-        logger.error("Error while loading data", error)
+        logger.error(error) { "Error while loading data" }
     }
 
     private fun Response.parse(): List<FilmRequest> {

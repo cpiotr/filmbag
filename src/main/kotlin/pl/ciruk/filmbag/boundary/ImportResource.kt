@@ -4,8 +4,12 @@ import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.function.runWithoutFallback
 import pl.ciruk.filmbag.request.DataLoader
+import java.lang.Exception
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.ws.rs.*
 import javax.ws.rs.container.AsyncResponse
+import javax.ws.rs.container.CompletionCallback
 import javax.ws.rs.container.ConnectionCallback
 import javax.ws.rs.container.Suspended
 import javax.ws.rs.core.MediaType
@@ -24,18 +28,18 @@ class ImportResource(private val dataLoader: DataLoader) {
             @PathParam("offset") @DefaultValue("0") offset: Int?) {
         logger.info { "Importing from offset: $offset" }
 
-        val future = dataLoader.importAsync(offset ?: 0)
-
+        val cancelled = AtomicBoolean(false)
         asyncResponse.register(ConnectionCallback() {
             logger.info { "Connection cancelled" }
-            future.cancel(true)
+            cancelled.set(true)
         })
-
         try {
-            asyncResponse.resume(Response.accepted(future::join).build())
-        } catch (e: Exception) {
-            logger.error(e) { "Cannot import data at offset $offset" }
-            val response = Response.serverError().entity(e.message).build()
+            val lastPage = dataLoader.importAsync(offset ?: 0, cancelled)
+                    .join()
+            asyncResponse.resume(Response.accepted(lastPage).build())
+        } catch (it: Exception) {
+            logger.error(it) { "Cannot import data at offset $offset" }
+            val response = Response.serverError().entity(it.message).build()
             asyncResponse.resume(response)
         }
     }
