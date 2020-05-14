@@ -31,6 +31,7 @@ class DataLoader(
         @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val logger = KotlinLogging.logger {}
     private val threadPool = Executors.newSingleThreadExecutor()
+    private val cancelled = AtomicBoolean(false)
 
     @PostConstruct
     fun logConfiguration() {
@@ -38,20 +39,28 @@ class DataLoader(
         logger.logConfiguration("Film provider limit", limit)
     }
 
-    fun importAsync(offset: Int = 0, cancelled: AtomicBoolean = AtomicBoolean(false)): CompletableFuture<Int> {
+    fun importAsync(offset: Int = 0): CompletableFuture<Int> {
         logger.info("Import from offset: $offset")
 
         return CompletableFuture
-                .supplyAsync(Supplier { loadDataOrThrow(offset, cancelled) }, threadPool)
+                .supplyAsync(Supplier { loadDataOrThrow(offset) }, threadPool)
                 .exceptionally { runWithFallback(0) { logError(it) } }
     }
 
-    private fun loadDataOrThrow(offset: Int, cancelled: AtomicBoolean): Int {
+    fun cancelImport() {
+        logger.info { "Cancelling import" }
+
+        cancelled.set(true)
+    }
+
+    private fun loadDataOrThrow(offset: Int): Int {
         logger.info("Loading data from: $url")
-        val films = generateSequenceOfFilms(offset + 1, cancelled)
+
+        cancelled.set(false)
+        val films = generateSequenceOfFilms(offset + 1)
         val processedPagesCount = recordAndStoreUpToLimit(films)
         val lastPageIndex = max(offset + processedPagesCount - 1, 0)
-        logger.info("Finished loading data. Last page was: $lastPageIndex")
+        logger.info("Finished loading data. Last offset was: $lastPageIndex")
         return lastPageIndex
     }
 
@@ -80,7 +89,7 @@ class DataLoader(
         requestProcessor.storeAll(filmRequests)
     }
 
-    private fun generateSequenceOfFilms(offset: Int, cancelled: AtomicBoolean): Sequence<List<FilmRequest>> {
+    private fun generateSequenceOfFilms(offset: Int): Sequence<List<FilmRequest>> {
         return generateSequence(offset) { it + 1 }
                 .takeWhile { !cancelled.get() }
                 .map { fetchFilmsFromPage(it, cancelled) }
