@@ -92,10 +92,10 @@ class DataLoader(
     private fun generateSequenceOfFilms(offset: Int): Sequence<List<FilmRequest>> {
         return generateSequence(offset) { it + 1 }
                 .takeWhile { !cancelled.get() }
-                .map { fetchFilmsFromPage(it, cancelled) }
+                .map { fetchFilmsFromPage(it) }
     }
 
-    private fun fetchFilmsFromPage(index: Int, cancelled: AtomicBoolean): List<FilmRequest> {
+    private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
         if (Thread.currentThread().isInterrupted) {
             return emptyList()
         }
