@@ -154,7 +154,7 @@ class RequestProcessorIntegrationTest(
                 .flatMap { it.scores }
                 .map { it.type }
                 .toSet()
-        assertThat(foundScoreTypes).containsOnlyElementsOf(ScoreType.values().map { it.name })
+        assertThat(foundScoreTypes).containsExactlyInAnyOrderElementsOf(ScoreType.values().map { it.name })
     }
 
     private fun executeGetRequest(
