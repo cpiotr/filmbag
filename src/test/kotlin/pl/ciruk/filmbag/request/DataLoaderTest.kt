@@ -9,10 +9,8 @@ import org.mockito.Mockito.*
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.testFilmRequest
 import java.util.function.Supplier
-import java.util.stream.Stream
-import kotlin.streams.asSequence
 
-class DataLoaderTest() {
+class DataLoaderTest {
     private lateinit var requestProcessor: RequestProcessor
     private lateinit var journal: Journal
 
@@ -77,9 +75,8 @@ class DataLoaderTest() {
         val supplier: Supplier<List<FilmRequest>> = mock(Supplier::class.java) as Supplier<List<FilmRequest>>
         `when`(supplier.get()).thenReturn(listOf(firstFilm, secondFilm)).thenReturn(listOf(thirdFilm))
 
-        val generate = Stream.generate(supplier)
-        val sequenceOfResults = generate
-                .asSequence()
+        val sequenceOfResults = generateSequence { supplier.get() }
+
 
         val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
 
