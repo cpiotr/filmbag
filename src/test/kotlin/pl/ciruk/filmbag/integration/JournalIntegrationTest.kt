@@ -10,6 +10,7 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.MariaDBContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
@@ -17,6 +18,7 @@ import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.testFilmRequest
 
 class KGenericContainer(imageName: String) : GenericContainer<KGenericContainer>(imageName)
+class KMariaDbContainer : MariaDBContainer<KMariaDbContainer>()
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -48,11 +50,17 @@ class JournalTest(@Autowired val journal: Journal) {
         val redis = KGenericContainer("redis:5.0.3-alpine")
                 .withExposedPorts(6379)!!
 
+        @Container
+        val mariaDb = KMariaDbContainer()
+                .withUsername("root")
+                .withPassword("")!!
+
         @JvmStatic
         @DynamicPropertySource
         fun redisProperties(registry: DynamicPropertyRegistry) {
             registry.add("redis.host") { redis.containerIpAddress }
             registry.add("redis.port") { redis.firstMappedPort }
+            registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
         }
     }
 }

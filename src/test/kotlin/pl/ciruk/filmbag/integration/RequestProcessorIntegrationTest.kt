@@ -11,7 +11,11 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.junit.jupiter.SpringExtension
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmReadResource
 import pl.ciruk.filmbag.boundary.FilmRequest
@@ -28,6 +32,7 @@ import redis.clients.jedis.JedisPool
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         classes = [FilmBagApplication::class, TestConfiguration::class])
+@Testcontainers
 class RequestProcessorIntegrationTest(
         @Autowired val restTemplate: TestRestTemplate,
         @Autowired val genreService: GenreService) {
@@ -180,6 +185,19 @@ class RequestProcessorIntegrationTest(
         restTemplate
                 .withBasicAuth("user", "password")
                 .put("/resources/films", filmRequests)
+    }
+
+    companion object {
+        @Container
+        val mariaDb = KMariaDbContainer()
+                .withUsername("root")
+                .withPassword("")!!
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun redisProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
+        }
     }
 }
 
