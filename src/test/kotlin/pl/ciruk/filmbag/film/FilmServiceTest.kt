@@ -7,22 +7,27 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.junit.jupiter.SpringExtension
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.ClosedRange
 import pl.ciruk.filmbag.boundary.LeftClosedRange
 import pl.ciruk.filmbag.boundary.RightClosedRange
+import pl.ciruk.filmbag.integration.KMariaDbContainer
 import pl.ciruk.filmbag.integration.TestConfiguration
 import pl.ciruk.filmbag.request.RequestProcessor
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
-import java.math.BigDecimal
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
         classes = [FilmBagApplication::class, TestConfiguration::class])
+@Testcontainers
 internal class FilmServiceTest(
         @Autowired val requestProcessor: RequestProcessor,
         @Autowired val filmService: FilmService) {
@@ -130,5 +135,18 @@ internal class FilmServiceTest(
 
         assertThat(films.map { it.title })
                 .isEmpty()
+    }
+
+    companion object {
+        @Container
+        val mariaDb = KMariaDbContainer()
+                .withUsername("root")
+                .withPassword("")!!
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun redisProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
+        }
     }
 }
