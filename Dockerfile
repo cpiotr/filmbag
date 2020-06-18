@@ -5,7 +5,7 @@ VOLUME /tmp
 
 ARG APP_VERSION=0.0.1
 ENV APP_VERSION=${APP_VERSION}
-ENV JDBC_URL=jdbc:h2:mem:testdb
+ENV JDBC_URL jdbc:mariadb://filmbag-db:3306/db
 ENV FILM_PROVIDER_URL http://192.168.178.206:8080/resources/suggestions
 ENV FILM_PROVIDER_LIMIT 70
 ENV REDIS_HOST localhost

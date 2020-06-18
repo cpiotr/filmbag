@@ -55,7 +55,6 @@ dependencies {
     testCompile("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-    testCompile("com.h2database:h2:$h2Version")
     testCompile("org.testcontainers:testcontainers:1.13.0")
     testCompile("org.testcontainers:mariadb:1.13.0")
     testCompile("org.testcontainers:junit-jupiter:1.13.0")
