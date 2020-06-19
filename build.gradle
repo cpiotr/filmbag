@@ -55,9 +55,9 @@ dependencies {
     testCompile("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-    testCompile("org.testcontainers:testcontainers:1.13.0")
-    testCompile("org.testcontainers:mariadb:1.13.0")
-    testCompile("org.testcontainers:junit-jupiter:1.13.0")
+    testCompile("org.testcontainers:testcontainers:$testcontainersVersion")
+    testCompile("org.testcontainers:mariadb:$testcontainersVersion")
+    testCompile("org.testcontainers:junit-jupiter:$testcontainersVersion")
 }
 
 compileKotlin {
