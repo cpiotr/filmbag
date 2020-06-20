@@ -31,7 +31,6 @@ class FilmReadResource(private val filmService: FilmService) {
         val scoreRange = createScoreRange(scoreFrom, scoreTo)
 
         return filmService.find(yearRange, scoreRange, page, pageSize)
-                .sortedByDescending { it.created }
                 .map { it.convertToRequest() }
     }
 

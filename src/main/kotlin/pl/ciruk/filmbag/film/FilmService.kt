@@ -2,6 +2,7 @@ package pl.ciruk.filmbag.film
 
 import mu.KotlinLogging
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -50,7 +51,7 @@ class FilmService(private val repository: FilmRepository) {
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }
 
-        val pageRequest = PageRequest.of(page, pageSize)
+        val pageRequest = PageRequest.of(page, pageSize, Sort.by("create").descending())
 
         return if (allSpecifications.isEmpty()) {
             repository
