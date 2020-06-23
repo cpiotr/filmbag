@@ -51,7 +51,7 @@ class FilmService(private val repository: FilmRepository) {
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }
 
-        val pageRequest = PageRequest.of(page, pageSize, Sort.by("create").descending())
+        val pageRequest = PageRequest.of(page, pageSize, Sort.by("created").descending())
 
         return if (allSpecifications.isEmpty()) {
             repository

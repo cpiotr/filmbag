@@ -119,14 +119,14 @@ class RequestProcessorIntegrationTest(
     }
 
     @Test
-    fun `should get paginated films`() {
+    fun `should get paginated films sorted by creation time in descending order`() {
         val filmRequest = testFilmRequest()
+        executePutRequest(filmRequest)
         val otherFilmRequest = testOtherFilmRequest()
+        executePutRequest(otherFilmRequest)
 
-        executePutRequest(filmRequest, otherFilmRequest)
-
-        assertThat(executeGetRequest(page = 0, pageSize = 1)).containsOnly(filmRequest)
-        assertThat(executeGetRequest(page = 1, pageSize = 1)).containsOnly(otherFilmRequest)
+        assertThat(executeGetRequest(page = 0, pageSize = 1)).containsOnly(otherFilmRequest)
+        assertThat(executeGetRequest(page = 1, pageSize = 1)).containsOnly(filmRequest)
     }
 
     @Test
