@@ -46,7 +46,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = ClosedRange(2011, 2012))
 
         assertThat(films.map { it.title })
-                .isEqualTo(listOf(secondFilm.title, thirdFilm.title))
+                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
@@ -54,7 +54,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = LeftClosedRange(2011))
 
         assertThat(films.map { it.title })
-                .isEqualTo(listOf(secondFilm.title, thirdFilm.title))
+                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
@@ -62,7 +62,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = RightClosedRange(2011))
 
         assertThat(films.map { it.title })
-                .isEqualTo(listOf(firstFilm.title, secondFilm.title))
+                .containsExactlyInAnyOrder(firstFilm.title, secondFilm.title)
     }
 
     @Test
@@ -94,7 +94,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = ClosedRange(0.6.toBigDecimal(), 0.8999.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .isEqualTo(listOf(secondFilm.title, thirdFilm.title))
+                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
@@ -102,7 +102,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = LeftClosedRange(0.7.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .isEqualTo(listOf(firstFilm.title, secondFilm.title))
+                .containsExactlyInAnyOrder(firstFilm.title, secondFilm.title)
     }
 
     @Test
@@ -110,7 +110,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = RightClosedRange(0.89999.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .isEqualTo(listOf(secondFilm.title, thirdFilm.title))
+                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
