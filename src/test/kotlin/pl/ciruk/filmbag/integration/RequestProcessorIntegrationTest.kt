@@ -165,8 +165,8 @@ class RequestProcessorIntegrationTest(
     private fun executeGetRequest(
             yearFrom: Int = FilmReadResource.missingInt,
             yearTo: Int = FilmReadResource.missingInt,
-            scoreFrom: Double = FilmReadResource.missingDecimal,
-            scoreTo: Double = FilmReadResource.missingDecimal,
+            scoreFrom: Double = FilmReadResource.missingDecimal.toDouble(),
+            scoreTo: Double = FilmReadResource.missingDecimal.toDouble(),
             page: Int = 0,
             pageSize: Int = 100): Array<FilmRequest> {
         val url = "/resources/films" +
