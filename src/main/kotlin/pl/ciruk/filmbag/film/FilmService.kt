@@ -88,7 +88,7 @@ class FilmService(private val repository: FilmRepository) {
 
     @PostConstruct
     @Transactional
-    private fun load() {
+    private fun updateHashIfComponentsChanged() {
         val films = repository.findAll()
 
         val filmsToBeUpdated = mutableListOf<Film>()

@@ -13,11 +13,11 @@ import javax.ws.rs.core.MediaType
 private val logger = KotlinLogging.logger {}
 
 @Service
-@Transactional
 @Path("/films")
 class FilmReadResource(private val filmService: FilmService) {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Transactional(readOnly = true)
     fun findAll(
             @QueryParam("yearFrom") yearFrom: Int = missingInt,
             @QueryParam("yearTo") yearTo: Int = missingInt,
@@ -61,13 +61,13 @@ class FilmReadResource(private val filmService: FilmService) {
 }
 
 @Service
-@Transactional
 @Path("/films")
 class FilmWriteResource(
         private val requestProcessor: RequestProcessor,
         private val journal: Journal) {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
+    @Transactional
     fun storeIfAbsent(filmRequests: List<FilmRequest>) {
         logger.info { "Store ${filmRequests.size} films, if missing" }
         journal.recordAsync(filmRequests)
