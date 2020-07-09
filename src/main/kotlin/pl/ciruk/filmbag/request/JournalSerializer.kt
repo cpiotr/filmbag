@@ -22,8 +22,13 @@ class JournalSerializer {
 
     fun deserialize(bytes: ByteArray): List<FilmRequest> {
         val typeToken: List<FilmRequest> = mutableListOf()
-        val requests = kryo.readObject(Input(bytes), typeToken.javaClass)
-        logger.debug { "Deserialized ${requests.size} requests" }
-        return requests
+        return try {
+            val requests = kryo.readObject(Input(bytes), typeToken.javaClass)
+            logger.debug { "Deserialized ${requests.size} requests" }
+            requests
+        } catch (e: Exception) {
+            logger.error(e) { "Could not deserialize entry" }
+            emptyList()
+        }
     }
 }
