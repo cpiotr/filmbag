@@ -19,12 +19,12 @@ class FilmReadResource(private val filmService: FilmService) {
     @Produces(MediaType.APPLICATION_JSON)
     @Transactional(readOnly = true)
     fun findAll(
-            @QueryParam("yearFrom") yearFrom: Int = missingInt,
-            @QueryParam("yearTo") yearTo: Int = missingInt,
-            @QueryParam("scoreFrom") scoreFrom: BigDecimal = missingDecimal,
-            @QueryParam("scoreTo") scoreTo: BigDecimal = missingDecimal,
-            @QueryParam("page") page: Int = firstPage,
-            @QueryParam("pageSize") pageSize: Int = defaultPageSize): List<FilmRequest> {
+            @DefaultValue(missingInt.toString()) @QueryParam("yearFrom") yearFrom: Int,
+            @DefaultValue(missingInt.toString()) @QueryParam("yearTo") yearTo: Int,
+            @DefaultValue(missingDecimal.toString()) @QueryParam("scoreFrom") scoreFrom: BigDecimal,
+            @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal,
+            @DefaultValue(firstPage.toString()) @QueryParam("page") page: Int,
+            @DefaultValue(defaultPageSize.toString()) @QueryParam("pageSize") pageSize: Int): List<FilmRequest> {
         logger.info { "Find page $page of size $pageSize" }
 
         val yearRange = createYearRange(yearFrom, yearTo)
@@ -36,9 +36,9 @@ class FilmReadResource(private val filmService: FilmService) {
 
     private fun createScoreRange(scoreFrom: BigDecimal, scoreTo: BigDecimal): Range<BigDecimal> {
         return when (Pair(scoreFrom, scoreTo)) {
-            Pair(missingDecimal, missingDecimal) -> EmptyRange()
-            Pair(scoreFrom, missingDecimal) -> LeftClosedRange(scoreFrom)
-            Pair(missingDecimal, scoreTo) -> RightClosedRange(scoreTo)
+            Pair(missingDecimal.toBigDecimal(), missingDecimal.toBigDecimal()) -> EmptyRange()
+            Pair(scoreFrom, missingDecimal.toBigDecimal()) -> LeftClosedRange(scoreFrom)
+            Pair(missingDecimal.toBigDecimal(), scoreTo) -> RightClosedRange(scoreTo)
             else -> ClosedRange(scoreFrom, scoreTo)
         }
     }
@@ -54,7 +54,7 @@ class FilmReadResource(private val filmService: FilmService) {
 
     companion object {
         const val missingInt = -1
-        val missingDecimal = BigDecimal.valueOf(-1.0)!!
+        const val missingDecimal = -1.0
         const val firstPage = 0
         const val defaultPageSize = 10
     }
