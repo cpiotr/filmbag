@@ -89,31 +89,43 @@ class FilmService(private val repository: FilmRepository) {
     @PostConstruct
     @Transactional
     private fun updateHashIfComponentsChanged() {
-        val films = repository.findAll()
+        val filmsById = repository.findAll()
+                .associateBy(Film::id)
+                .toMutableMap()
 
-        val filmsToBeUpdated = mutableListOf<Film>()
-        val filmsToBeDeleted = mutableListOf<Film>()
-        films.mapNotNull { copyIfHashChanged(it) }
-                .groupBy { it.hash }
-                .values
-                .map { it.sortedByDescending { film -> film.created } }
-                .forEach {
-                    filmsToBeUpdated.add(it.first())
-                    filmsToBeDeleted.addAll(it.drop(1))
-                }
-
+        val (filmsToBeUpdated, filmsToBeDeleted) = selectUpdatableAndDeletable(filmsById.values)
         if (filmsToBeUpdated.isNotEmpty()) {
             repository.saveAll(filmsToBeUpdated)
             logger.info { "Updated ${filmsToBeUpdated.size} films" }
+            filmsToBeUpdated.forEach { filmsById[it.id] = it }
         }
 
         if (filmsToBeDeleted.isNotEmpty()) {
             repository.deleteAll(filmsToBeDeleted)
             logger.info { "Deleted ${filmsToBeDeleted.size} films" }
+            filmsToBeDeleted.forEach { filmsById.remove(it.id) }
         }
 
-        repository.findAll()
+        filmsById.values
                 .forEach { existingFilmHashes[it.hash] = it.id!! }
+    }
+
+    private fun selectUpdatableAndDeletable(films: Collection<Film>): Pair<MutableList<Film>, MutableList<Film>> {
+        val filmsToBeUpdated = mutableListOf<Film>()
+        val filmsToBeDeleted = mutableListOf<Film>()
+
+        val filmsByHash = films.mapNotNull { copyIfHashChanged(it) }
+                .groupBy { it.hash }
+
+        filmsByHash
+                .values
+                .map { it.sortedByDescending(Film::created) }
+                .forEach {
+                    logger.info { "Films sharing the same hash: ${it.map(Film::toString)}" }
+                    filmsToBeUpdated.add(it.first())
+                    filmsToBeDeleted.addAll(it.drop(1))
+                }
+        return Pair(filmsToBeUpdated, filmsToBeDeleted)
     }
 
     private fun copyIfHashChanged(it: Film): Film? {
