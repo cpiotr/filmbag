@@ -16,6 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.testFilmRequest
+import pl.ciruk.filmbag.testOtherFilmRequest
 
 class KGenericContainer(imageName: String) : GenericContainer<KGenericContainer>(imageName)
 class KMariaDbContainer : MariaDBContainer<KMariaDbContainer>()
@@ -27,14 +28,17 @@ class KMariaDbContainer : MariaDBContainer<KMariaDbContainer>()
 class JournalTest(@Autowired val journal: Journal) {
 
     @Test
-    fun `should record request list to journal and replay it`() {
-        val expectedRequests = mutableListOf(testFilmRequest())
+    fun `should record request list to journal and replay it in order`() {
+        val filmRequest = testFilmRequest()
+        val otherFilmRequest = testOtherFilmRequest()
 
-        journal.record(expectedRequests)
+        journal.record(mutableListOf(filmRequest))
+        journal.record(mutableListOf(otherFilmRequest))
+
         val replayedRequests = journal.replay().toList()
 
         assertThat(replayedRequests)
-                .containsExactly(expectedRequests)
+                .containsExactly(mutableListOf(filmRequest), mutableListOf(otherFilmRequest))
     }
 
     @Test
