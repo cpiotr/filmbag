@@ -51,6 +51,8 @@ dependencies {
     compile("com.squareup.okhttp3:okhttp:$okHttpVersion")
 
     compile("com.esotericsoftware:kryo:$kryoVersion")
+    compile("io.protostuff:protostuff-runtime:1.7.4")
+    compile("io.protostuff:protostuff-core:1.7.4")
 
     testCompile("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
