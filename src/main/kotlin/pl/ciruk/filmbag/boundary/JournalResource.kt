@@ -13,8 +13,9 @@ import javax.ws.rs.core.Response
 @Service
 @Path("/journal")
 class JournalResource(
-        private val requestProcessor: RequestProcessor,
-        private val journal: Journal) {
+    private val requestProcessor: RequestProcessor,
+    private val journal: Journal
+) {
     private val logger = KotlinLogging.logger {}
 
     @GET
@@ -22,7 +23,7 @@ class JournalResource(
     @Produces(MediaType.APPLICATION_JSON)
     fun replay(): Response {
         journal.replay()
-                .forEach { safeStoreAll(it) }
+            .forEach { safeStoreAll(it) }
         return Response.accepted().build()
     }
 
