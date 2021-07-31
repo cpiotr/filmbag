@@ -1,29 +1,34 @@
 package pl.ciruk.filmbag.request
 
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
+import io.protostuff.LinkedBuffer
+import io.protostuff.ProtostuffIOUtil
+import io.protostuff.runtime.RuntimeSchema
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 
+
 @Service
 class JournalSerializer {
     private val logger = KotlinLogging.logger {}
-
-    private val kryo = Kryo()
+    private val buffer = LinkedBuffer.allocate(1024)
+    private val schema = RuntimeSchema.getSchema(DataWrapper::class.java)
 
     fun serialize(requests: List<FilmRequest>): ByteArray {
         logger.debug { "Serializing: ${requests.size} requests" }
-        val output = Output(requests.size * 1024)
-        kryo.writeObject(output, requests)
-        return output.toBytes()
+
+        return try {
+            ProtostuffIOUtil.toByteArray(DataWrapper(requests), schema, buffer)
+        } finally {
+            buffer.clear()
+        }
     }
 
     fun deserialize(bytes: ByteArray): List<FilmRequest> {
-        val typeToken: List<FilmRequest> = mutableListOf()
         return try {
-            val requests = kryo.readObject(Input(bytes), typeToken.javaClass)
+            val dataWrapper = schema.newMessage()
+            ProtostuffIOUtil.mergeFrom(bytes, dataWrapper, schema)
+            val requests = dataWrapper.requests ?: emptyList()
             logger.debug { "Deserialized ${requests.size} requests" }
             requests
         } catch (e: Exception) {
@@ -32,3 +37,6 @@ class JournalSerializer {
         }
     }
 }
+
+class DataWrapper(var requests: List<FilmRequest>? = null)
+`

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.function.runWithoutFallback
 import redis.clients.jedis.JedisPool
-import java.security.MessageDigest
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -18,7 +17,6 @@ class Journal(
 ) {
     private val logger = KotlinLogging.logger {}
     private val threadPool = Executors.newSingleThreadExecutor()
-    private val digest = MessageDigest.getInstance("SHA-256")
 
     fun recordAsync(films: List<FilmRequest>) {
         CompletableFuture
@@ -82,4 +80,3 @@ class Journal(
         return result
     }
 }
-

@@ -18,4 +18,17 @@ class JournalSerializerTest {
 
         assertThat(deserializedRequests).isEqualTo(filmRequests)
     }
+
+    @Test
+    fun `should serialize and deserialize the same list of requests twice`() {
+        val filmRequests = generateSequence { testFilmRequest() }
+                .take(10)
+                .toList()
+
+        val intermediateRequests = journalSerializer.deserialize(journalSerializer.serialize(filmRequests))
+        val deserializedRequests = journalSerializer.deserialize(journalSerializer.serialize(intermediateRequests))
+
+
+        assertThat(deserializedRequests).isEqualTo(filmRequests)
+    }
 }
