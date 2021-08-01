@@ -11,7 +11,6 @@ import javax.persistence.GenerationType.SEQUENCE
 @Entity
 data class Film(
         @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
-        @Temporal(TemporalType.TIMESTAMP)
         val created: ZonedDateTime = ZonedDateTime.now(),
         val title: String,
         val year: Int,
