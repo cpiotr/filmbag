@@ -39,4 +39,3 @@ class JournalSerializer {
 }
 
 class DataWrapper(var requests: List<FilmRequest>? = null)
-`

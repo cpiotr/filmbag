@@ -85,7 +85,7 @@ flyway {
 }
 
 wrapper {
-    gradleVersion = '6.3'
+    gradleVersion = '7.0.2'
 }
 
 
