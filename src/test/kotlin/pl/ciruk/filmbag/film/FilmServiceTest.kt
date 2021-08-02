@@ -25,12 +25,14 @@ import pl.ciruk.filmbag.testOtherFilmRequest
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        classes = [FilmBagApplication::class, TestConfiguration::class])
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    classes = [FilmBagApplication::class, TestConfiguration::class]
+)
 @Testcontainers
 internal class FilmServiceTest(
-        @Autowired val requestProcessor: RequestProcessor,
-        @Autowired val filmService: FilmService) {
+    @Autowired val requestProcessor: RequestProcessor,
+    @Autowired val filmService: FilmService
+) {
 
     val firstFilm = testFilmRequest(2009, 0.9)
     val secondFilm = testFilmRequest(2011, 0.7)
@@ -46,7 +48,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = ClosedRange(2011, 2012))
 
         assertThat(films.map { it.title })
-                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
+            .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
@@ -54,7 +56,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = LeftClosedRange(2011))
 
         assertThat(films.map { it.title })
-                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
+            .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
@@ -62,7 +64,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = RightClosedRange(2011))
 
         assertThat(films.map { it.title })
-                .containsExactlyInAnyOrder(firstFilm.title, secondFilm.title)
+            .containsExactlyInAnyOrder(firstFilm.title, secondFilm.title)
     }
 
     @Test
@@ -70,7 +72,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = RightClosedRange(2008))
 
         assertThat(films.map { it.title })
-                .isEmpty()
+            .isEmpty()
     }
 
     @Test
@@ -78,7 +80,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = LeftClosedRange(2020))
 
         assertThat(films.map { it.title })
-                .isEmpty()
+            .isEmpty()
     }
 
     @Test
@@ -86,7 +88,7 @@ internal class FilmServiceTest(
         val films = filmService.find(year = ClosedRange(2010, 2010))
 
         assertThat(films.map { it.title })
-                .isEmpty()
+            .isEmpty()
     }
 
     @Test
@@ -94,7 +96,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = ClosedRange(0.6.toBigDecimal(), 0.8999.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
+            .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
@@ -102,7 +104,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = LeftClosedRange(0.7.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .containsExactlyInAnyOrder(firstFilm.title, secondFilm.title)
+            .containsExactlyInAnyOrder(firstFilm.title, secondFilm.title)
     }
 
     @Test
@@ -110,7 +112,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = RightClosedRange(0.89999.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
+            .containsExactlyInAnyOrder(secondFilm.title, thirdFilm.title)
     }
 
     @Test
@@ -118,7 +120,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = RightClosedRange(0.5999.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .isEmpty()
+            .isEmpty()
     }
 
     @Test
@@ -126,7 +128,7 @@ internal class FilmServiceTest(
         val films = filmService.find(score = LeftClosedRange(0.999.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .isEmpty()
+            .isEmpty()
     }
 
     @Test
@@ -134,14 +136,14 @@ internal class FilmServiceTest(
         val films = filmService.find(score = ClosedRange(0.8.toBigDecimal(), 0.8.toBigDecimal()))
 
         assertThat(films.map { it.title })
-                .isEmpty()
+            .isEmpty()
     }
 
     companion object {
         @Container
         val mariaDb = KMariaDbContainer()
-                .withUsername("root")
-                .withPassword("")!!
+            .withUsername("root")
+            .withPassword("")!!
 
         @JvmStatic
         @DynamicPropertySource

@@ -3,6 +3,8 @@ package pl.ciruk.filmbag.film
 import org.hibernate.annotations.Fetch
 import org.hibernate.annotations.FetchMode
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalUnit
 import java.util.*
 import javax.persistence.*
 import javax.persistence.CascadeType.*
@@ -10,26 +12,28 @@ import javax.persistence.GenerationType.SEQUENCE
 
 @Entity
 data class Film(
-        @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
-        val created: ZonedDateTime = ZonedDateTime.now(),
-        val title: String,
-        val year: Int,
-        val plot: String? = null,
-        val link: String,
-        val poster: String? = null,
-        var score: Double,
+    @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
+    @Column(columnDefinition = "DATETIME(6)") val created: ZonedDateTime = ZonedDateTime.now().truncatedTo(ChronoUnit.MICROS),
+    val title: String,
+    val year: Int,
+    val plot: String? = null,
+    val link: String,
+    val poster: String? = null,
+    var score: Double,
 
-        @OneToMany(cascade = [ALL], mappedBy = "film", orphanRemoval = true)
-        val scores: MutableSet<Score> = mutableSetOf(),
+    @OneToMany(cascade = [ALL], mappedBy = "film", orphanRemoval = true)
+    val scores: MutableSet<Score> = mutableSetOf(),
 
-        @ManyToMany
-        @Fetch(FetchMode.JOIN)
-        @JoinTable(name = "film_genres",
-                joinColumns = [JoinColumn(name = "film_id")],
-                inverseJoinColumns = [JoinColumn(name = "genres_id")])
-        val genres: Set<Genre> = mutableSetOf(),
+    @ManyToMany
+    @Fetch(FetchMode.JOIN)
+    @JoinTable(
+        name = "film_genres",
+        joinColumns = [JoinColumn(name = "film_id")],
+        inverseJoinColumns = [JoinColumn(name = "genres_id")]
+    )
+    val genres: Set<Genre> = mutableSetOf(),
 
-        val hash: Int = Objects.hash(title, year, genres)
+    val hash: Int = Objects.hash(title, year, genres)
 ) {
     fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?): Boolean {
         val newScore = Score(grade = grade, quantity = quantity, url = url, type = type, film = this)
@@ -66,12 +70,13 @@ data class Film(
 
 @Entity
 data class Score(
-        @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
-        @Enumerated(EnumType.STRING) val type: ScoreType,
-        val grade: Double,
-        val quantity: Long,
-        val url: String? = null,
-        @ManyToOne(cascade = [PERSIST, MERGE]) @JoinColumn(name = "film_id") val film: Film? = null) {
+    @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
+    @Enumerated(EnumType.STRING) val type: ScoreType,
+    val grade: Double,
+    val quantity: Long,
+    val url: String? = null,
+    @ManyToOne(cascade = [PERSIST, MERGE]) @JoinColumn(name = "film_id") val film: Film? = null
+) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -100,8 +105,9 @@ data class Score(
 
 @Entity
 data class Genre(
-        @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
-        val name: String)
+    @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
+    val name: String
+)
 
 enum class ScoreType {
     AMATEUR,
