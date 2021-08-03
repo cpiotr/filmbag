@@ -9,17 +9,12 @@ import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.junit.jupiter.SpringExtension
-import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.MariaDBContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
-
-class KGenericContainer(imageName: String) : GenericContainer<KGenericContainer>(imageName)
-class KMariaDbContainer : MariaDBContainer<KMariaDbContainer>()
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -38,7 +33,7 @@ class JournalTest(@Autowired val journal: Journal) {
         val replayedRequests = journal.replay().toList()
 
         assertThat(replayedRequests)
-                .containsExactly(mutableListOf(filmRequest), mutableListOf(otherFilmRequest))
+            .containsExactly(mutableListOf(filmRequest), mutableListOf(otherFilmRequest))
     }
 
     @Test
@@ -46,18 +41,18 @@ class JournalTest(@Autowired val journal: Journal) {
         val replayedRequests = journal.replay().toList()
 
         assertThat(replayedRequests)
-                .isEmpty()
+            .isEmpty()
     }
 
     companion object {
         @Container
         val redis = KGenericContainer("redis:5.0.3-alpine")
-                .withExposedPorts(6379)!!
+            .withExposedPorts(6379)!!
 
         @Container
         val mariaDb = KMariaDbContainer()
-                .withUsername("root")
-                .withPassword("")!!
+            .withUsername("root")
+            .withPassword("")!!
 
         @JvmStatic
         @DynamicPropertySource

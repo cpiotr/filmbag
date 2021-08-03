@@ -30,12 +30,14 @@ import redis.clients.jedis.JedisPool
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        classes = [FilmBagApplication::class, TestConfiguration::class])
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    classes = [FilmBagApplication::class, TestConfiguration::class]
+)
 @Testcontainers
 class RequestProcessorIntegrationTest(
-        @Autowired val restTemplate: TestRestTemplate,
-        @Autowired val genreService: GenreService) {
+    @Autowired val restTemplate: TestRestTemplate,
+    @Autowired val genreService: GenreService
+) {
 
     @Test
     fun `should get created films`() {
@@ -96,17 +98,17 @@ class RequestProcessorIntegrationTest(
 
         val arrayOfFilmRequests = executeGetRequest()
         assertThat(arrayOfFilmRequests)
-                .hasSize(1)
-                .containsOnly(filmRequest)
+            .hasSize(1)
+            .containsOnly(filmRequest)
     }
 
     @Test
     fun `should update scores when film request is put twice`() {
         val filmRequest = testFilmRequest()
         val updatedFilmRequest = filmRequest.copy(
-                score = filmRequest.score?.plus(1.0),
-                scores = filmRequest.scores.plus(testScoreRequest(0.789, 1234)),
-                numberOfScores = filmRequest.numberOfScores + 1
+            score = filmRequest.score?.plus(1.0),
+            scores = filmRequest.scores.plus(testScoreRequest(0.789, 1234)),
+            numberOfScores = filmRequest.numberOfScores + 1
         )
 
         executePutRequest(filmRequest)
@@ -114,8 +116,8 @@ class RequestProcessorIntegrationTest(
 
         val arrayOfFilmRequests = executeGetRequest()
         assertThat(arrayOfFilmRequests)
-                .hasSize(1)
-                .containsOnly(updatedFilmRequest)
+            .hasSize(1)
+            .containsOnly(updatedFilmRequest)
     }
 
     @Test
@@ -132,7 +134,7 @@ class RequestProcessorIntegrationTest(
     @Test
     fun `should not create duplicate genres`() {
         assertThat(genreService.findAll())
-                .isEmpty()
+            .isEmpty()
 
         val filmRequest = testFilmRequest(year = 2020)
         val otherFilmRequest = testOtherFilmRequest(year = 2010)
@@ -142,13 +144,13 @@ class RequestProcessorIntegrationTest(
         executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
 
         assertThat(genreService.findAll().map { it.name })
-                .containsExactlyInAnyOrder("Genre1", "Genre2", "Genre3", "Genre4")
+            .containsExactlyInAnyOrder("Genre1", "Genre2", "Genre3", "Genre4")
     }
 
     @Test
     fun `should map score types`() {
         assertThat(genreService.findAll())
-                .isEmpty()
+            .isEmpty()
 
         val filmRequest = testFilmRequest(year = 2020)
 
@@ -156,19 +158,20 @@ class RequestProcessorIntegrationTest(
         val foundFilms = executeGetRequest(page = 0, pageSize = 1)
 
         val foundScoreTypes = foundFilms
-                .flatMap { it.scores }
-                .map { it.type }
-                .toSet()
+            .flatMap { it.scores }
+            .map { it.type }
+            .toSet()
         assertThat(foundScoreTypes).containsExactlyInAnyOrderElementsOf(ScoreType.values().map { it.name })
     }
 
     private fun executeGetRequest(
-            yearFrom: Int = FilmReadResource.missingInt,
-            yearTo: Int = FilmReadResource.missingInt,
-            scoreFrom: Double = FilmReadResource.missingDecimal,
-            scoreTo: Double = FilmReadResource.missingDecimal,
-            page: Int = 0,
-            pageSize: Int = 100): Array<FilmRequest> {
+        yearFrom: Int = FilmReadResource.missingInt,
+        yearTo: Int = FilmReadResource.missingInt,
+        scoreFrom: Double = FilmReadResource.missingDecimal,
+        scoreTo: Double = FilmReadResource.missingDecimal,
+        page: Int = 0,
+        pageSize: Int = 100
+    ): Array<FilmRequest> {
         val url = "/resources/films" +
                 "?yearFrom=$yearFrom" +
                 "&yearTo=$yearTo" +
@@ -177,21 +180,21 @@ class RequestProcessorIntegrationTest(
                 "&page=$page" +
                 "&pageSize=$pageSize"
         return restTemplate
-                .withBasicAuth("user", "password")
-                .getForObject(url, Array<FilmRequest>::class.java)
+            .withBasicAuth("user", "password")
+            .getForObject(url, Array<FilmRequest>::class.java)
     }
 
     private fun executePutRequest(vararg filmRequests: FilmRequest) {
         restTemplate
-                .withBasicAuth("user", "password")
-                .put("/resources/films", filmRequests)
+            .withBasicAuth("user", "password")
+            .put("/resources/films", filmRequests)
     }
 
     companion object {
         @Container
         val mariaDb = KMariaDbContainer()
-                .withUsername("root")
-                .withPassword("")!!
+            .withUsername("root")
+            .withPassword("")!!
 
         @JvmStatic
         @DynamicPropertySource
