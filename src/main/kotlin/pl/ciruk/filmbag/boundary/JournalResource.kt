@@ -2,6 +2,8 @@ package pl.ciruk.filmbag.boundary
 
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.request.RequestProcessor
 import javax.ws.rs.GET
@@ -14,7 +16,8 @@ import javax.ws.rs.core.Response
 @Path("/journal")
 class JournalResource(
     private val requestProcessor: RequestProcessor,
-    private val journal: Journal
+    private val journal: Journal,
+    private val filmService: FilmService
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -25,6 +28,21 @@ class JournalResource(
         journal.replay()
             .forEach { safeStoreAll(it) }
         return Response.accepted().build()
+    }
+
+    @GET
+    @Path("/snapshot")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Transactional(readOnly = true)
+    fun snapshot(): Response {
+        var page = 0
+        val size = 100
+        do {
+            val pageOfFilms = filmService.find(page = page, pageSize = size).map { it.convertToRequest() }
+            journal.recordAsSnapshot(pageOfFilms)
+            page++
+        } while (pageOfFilms.size == size)
+        return Response.accepted(mapOf(Pair("journalEntries", page))).build()
     }
 
     private fun safeStoreAll(it: List<FilmRequest>) {

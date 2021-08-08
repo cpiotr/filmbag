@@ -7,8 +7,12 @@ import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.function.runWithoutFallback
 import redis.clients.jedis.JedisPool
 import java.time.Instant
+import java.time.temporal.ChronoField
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalField
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @Service
 class Journal(
@@ -28,6 +32,19 @@ class Journal(
         val serializedRequest = journalSerializer.serialize(films)
         val key = Instant.now().toEpochMilli()
 
+        record(key, serializedRequest)
+    }
+
+    fun recordAsSnapshot(films: List<FilmRequest>) {
+        val serializedRequest = journalSerializer.serialize(films)
+        val key = Instant.ofEpochMilli(findAllKeys().first())
+            .minus(1, ChronoUnit.DAYS)
+            .toEpochMilli()
+
+        record(key, serializedRequest)
+    }
+
+    private fun record(key: Long, serializedRequest: ByteArray) {
         redisPool.resource.use {
             it.set(key.toBytes(), serializedRequest)
         }
@@ -35,7 +52,7 @@ class Journal(
     }
 
     fun replay(): Sequence<List<FilmRequest>> {
-        val keys = findAllKeys()
+        val keys = findAllKeysSerialized()
         if (keys.isEmpty()) {
             logger.info { "Nothing to replay. Empty journal" }
             return emptySequence()
@@ -49,34 +66,38 @@ class Journal(
         }
     }
 
-    private fun findAllKeys(): Array<ByteArray> {
+    private fun findAllKeys(): List<Long> {
         redisPool.resource.use {
             val allKeys = "*".toByteArray()
             return it.keys(allKeys)
                 .map { bytes -> bytes.toLong() }
                 .sorted()
+        }
+    }
+
+    private fun findAllKeysSerialized(): Array<ByteArray> {
+        return findAllKeys()
                 .map { long -> long.toBytes() }
                 .toTypedArray()
-        }
     }
+}
 
-    fun Long.toBytes(): ByteArray {
-        var l = this
-        val result = ByteArray(Long.SIZE_BYTES)
-        for (i in Long.SIZE_BYTES - 1 downTo 0) {
-            result[i] = (l and 0xFF).toByte()
-            l = l shr Byte.SIZE_BITS
-        }
-        return result
+fun Long.toBytes(): ByteArray {
+    var l = this
+    val result = ByteArray(Long.SIZE_BYTES)
+    for (i in Long.SIZE_BYTES - 1 downTo 0) {
+        result[i] = (l and 0xFF).toByte()
+        l = l shr Byte.SIZE_BITS
     }
+    return result
+}
 
-    fun ByteArray.toLong(): Long {
-        var result: Long = 0
-        for (i in 0 until Long.SIZE_BYTES) {
-            result = result shl Byte.SIZE_BITS
-            val byte = this[i]
-            result = result or ((byte and 0xFF).toLong())
-        }
-        return result
+fun ByteArray.toLong(): Long {
+    var result: Long = 0
+    for (i in 0 until Long.SIZE_BYTES) {
+        result = result shl Byte.SIZE_BITS
+        val byte = this[i]
+        result = result or ((byte and 0xFF).toLong())
     }
+    return result
 }
