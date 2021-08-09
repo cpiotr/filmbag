@@ -37,6 +37,21 @@ class JournalTest(@Autowired val journal: Journal) {
     }
 
     @Test
+    fun `should record snapshot replay it in before existing entries`() {
+        val filmRequest = testFilmRequest()
+        val otherFilmRequest = testOtherFilmRequest()
+        journal.record(listOf(filmRequest))
+        journal.record(listOf(otherFilmRequest))
+
+        journal.recordAsSnapshot(listOf(filmRequest, otherFilmRequest))
+
+        val replayedRequests = journal.replay().toList()
+
+        assertThat(replayedRequests)
+            .containsExactly(listOf(filmRequest, otherFilmRequest), listOf(filmRequest), listOf(otherFilmRequest))
+    }
+
+    @Test
     fun `should replay empty journal`() {
         val replayedRequests = journal.replay().toList()
 
