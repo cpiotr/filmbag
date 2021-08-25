@@ -46,7 +46,7 @@ class FilmService(private val repository: FilmRepository) {
             score: Range<BigDecimal> = EmptyRange(),
             page: Int = 0,
             pageSize: Int = 10): List<Film> {
-        logger.info { "Find by year=$year; score=$score" }
+        logger.info { "Find by year=$year; score=$score; page=$page; pageSize=$pageSize" }
 
         val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
                 .mapNotNull { createSpecification(it.first, it.second) }

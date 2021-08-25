@@ -19,19 +19,18 @@ class FilmReadResource(private val filmService: FilmService) {
     @Produces(MediaType.APPLICATION_JSON)
     @Transactional(readOnly = true)
     fun findAll(
-            @DefaultValue(missingInt.toString()) @QueryParam("yearFrom") yearFrom: Int,
-            @DefaultValue(missingInt.toString()) @QueryParam("yearTo") yearTo: Int,
-            @DefaultValue(missingDecimal.toString()) @QueryParam("scoreFrom") scoreFrom: BigDecimal,
-            @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal,
-            @DefaultValue(firstPage.toString()) @QueryParam("page") page: Int,
-            @DefaultValue(defaultPageSize.toString()) @QueryParam("pageSize") pageSize: Int): List<FilmRequest> {
-        logger.info { "Find page $page of size $pageSize" }
-
+        @DefaultValue(missingInt.toString()) @QueryParam("yearFrom") yearFrom: Int,
+        @DefaultValue(missingInt.toString()) @QueryParam("yearTo") yearTo: Int,
+        @DefaultValue(missingDecimal.toString()) @QueryParam("scoreFrom") scoreFrom: BigDecimal,
+        @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal,
+        @DefaultValue(firstPage.toString()) @QueryParam("page") page: Int,
+        @DefaultValue(defaultPageSize.toString()) @QueryParam("pageSize") pageSize: Int
+    ): List<FilmRequest> {
         val yearRange = createYearRange(yearFrom, yearTo)
         val scoreRange = createScoreRange(scoreFrom, scoreTo)
 
         return filmService.find(yearRange, scoreRange, page, pageSize)
-                .map { it.convertToRequest() }
+            .map { it.convertToRequest() }
     }
 
     private fun createScoreRange(scoreFrom: BigDecimal, scoreTo: BigDecimal): Range<BigDecimal> {
@@ -63,8 +62,9 @@ class FilmReadResource(private val filmService: FilmService) {
 @Service
 @Path("/films")
 class FilmWriteResource(
-        private val requestProcessor: RequestProcessor,
-        private val journal: Journal) {
+    private val requestProcessor: RequestProcessor,
+    private val journal: Journal
+) {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
