@@ -48,7 +48,7 @@ class JournalTest(@Autowired val journal: Journal) {
         val replayedRequests = journal.replay().toList()
 
         assertThat(replayedRequests)
-            .containsExactly(listOf(filmRequest, otherFilmRequest), listOf(filmRequest), listOf(otherFilmRequest))
+            .containsExactly(listOf(filmRequest), listOf(otherFilmRequest), listOf(filmRequest, otherFilmRequest))
     }
 
     @Test

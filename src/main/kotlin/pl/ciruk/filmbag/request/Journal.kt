@@ -37,8 +37,8 @@ class Journal(
 
     fun recordAsSnapshot(films: List<FilmRequest>) {
         val serializedRequest = journalSerializer.serialize(films)
-        val key = Instant.ofEpochMilli(findAllKeys().first())
-            .minus(1, ChronoUnit.DAYS)
+        val key = Instant.ofEpochMilli(findAllKeys().last())
+            .plusMillis(1)
             .toEpochMilli()
 
         record(key, serializedRequest)
