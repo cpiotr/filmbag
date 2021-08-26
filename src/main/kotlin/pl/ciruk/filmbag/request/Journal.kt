@@ -7,12 +7,8 @@ import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.function.runWithoutFallback
 import redis.clients.jedis.JedisPool
 import java.time.Instant
-import java.time.temporal.ChronoField
-import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalField
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 @Service
 class Journal(
@@ -37,7 +33,7 @@ class Journal(
 
     fun recordAsSnapshot(films: List<FilmRequest>) {
         val serializedRequest = journalSerializer.serialize(films)
-        val key = Instant.ofEpochMilli(findAllKeys().last())
+        val key = Instant.ofEpochMilli(findAllKeys().lastOrNull() ?: 0)
             .plusMillis(1)
             .toEpochMilli()
 
@@ -77,8 +73,8 @@ class Journal(
 
     private fun findAllKeysSerialized(): Array<ByteArray> {
         return findAllKeys()
-                .map { long -> long.toBytes() }
-                .toTypedArray()
+            .map { long -> long.toBytes() }
+            .toTypedArray()
     }
 }
 
