@@ -40,6 +40,14 @@ class Journal(
         record(key, serializedRequest)
     }
 
+    fun deleteAll() {
+        val keys = findAllKeysSerialized()
+        redisPool.resource.use {
+            keys.forEach { key -> it.del(key) }
+        }
+        logger.info { "Deleted ${keys.size} entries" }
+    }
+
     private fun record(key: Long, serializedRequest: ByteArray) {
         redisPool.resource.use {
             it.set(key.toBytes(), serializedRequest)
