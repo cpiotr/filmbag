@@ -9,6 +9,8 @@ import redis.clients.jedis.JedisPool
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 @Service
 class Journal(
@@ -17,25 +19,29 @@ class Journal(
 ) {
     private val logger = KotlinLogging.logger {}
     private val threadPool = Executors.newSingleThreadExecutor()
+    private val keyGenerator = AtomicLong(TimeUnit.MILLISECONDS.toNanos(Instant.now().toEpochMilli()))
 
     fun recordAsync(films: List<FilmRequest>) {
         CompletableFuture
-            .runAsync(Runnable { record(films) }, threadPool)
+            .runAsync({ record(films) }, threadPool)
             .exceptionally { runWithoutFallback { logger.error(it) { "Cannot record request with ${films.size} films" } } }
     }
 
     fun record(films: List<FilmRequest>) {
         val serializedRequest = journalSerializer.serialize(films)
-        val key = Instant.now().toEpochMilli()
+        val key = keyGenerator.incrementAndGet()
 
         record(key, serializedRequest)
     }
 
     fun recordAsSnapshot(films: List<FilmRequest>) {
         val serializedRequest = journalSerializer.serialize(films)
-        val key = Instant.ofEpochMilli(findAllKeys().lastOrNull() ?: 0)
-            .plusMillis(1)
-            .toEpochMilli()
+        val lastKey = findAllKeys().lastOrNull() ?: 0
+        val key = if (lastKey < Instant.now().toEpochMilli()) {
+            TimeUnit.MILLISECONDS.toNanos(lastKey) + 1
+        } else {
+            lastKey + 1
+        }
 
         record(key, serializedRequest)
     }
