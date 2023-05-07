@@ -1,4 +1,4 @@
-FROM openjdk:16-alpine3.13
+FROM eclipse-temurin:19-alpine
 MAINTAINER c.piotre@gmail.com
 
 VOLUME /tmp
