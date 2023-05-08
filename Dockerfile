@@ -29,7 +29,6 @@ ENV JVM_OPTS="-Xmx1G -Xms1G \
 	-XX:+TieredCompilation \
 	-XX:InitialCodeCacheSize=128m \
 	-XX:ReservedCodeCacheSize=128m \
-	-XX:-UseBiasedLocking \
 	-XX:+PreserveFramePointer \
 	-XX:+UnlockExperimentalVMOptions \
 	-XX:+UseJVMCICompiler \
