@@ -3,7 +3,7 @@ package pl.ciruk.filmbag.film
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository
 import org.springframework.stereotype.Repository
-import javax.persistence.EntityManager
+import jakarta.persistence.EntityManager
 
 @Repository
 class FilmRepository(@Autowired val entityManager: EntityManager)

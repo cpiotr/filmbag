@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
 import java.time.Duration
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 @Configuration
 class Connections(@Value("\${spring.datasource.url}") private val url: String) {

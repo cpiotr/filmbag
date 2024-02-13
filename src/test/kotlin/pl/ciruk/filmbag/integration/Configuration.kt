@@ -1,10 +1,10 @@
 package pl.ciruk.filmbag.integration
 
-import org.hibernate.dialect.MariaDB10Dialect
+import org.hibernate.dialect.MariaDBDialect
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.MariaDBContainer
 
-class Utf8MariaDbDialect : MariaDB10Dialect() {
+class Utf8MariaDbDialect : MariaDBDialect() {
     override fun getTableTypeString() = " DEFAULT CHARSET=utf8"
 }
 

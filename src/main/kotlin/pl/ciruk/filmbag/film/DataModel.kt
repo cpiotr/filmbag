@@ -6,14 +6,16 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalUnit
 import java.util.*
-import javax.persistence.*
-import javax.persistence.CascadeType.*
-import javax.persistence.GenerationType.SEQUENCE
+import jakarta.persistence.*
+import jakarta.persistence.CascadeType.*
+import jakarta.persistence.GenerationType.SEQUENCE
+import org.hibernate.annotations.TimeZoneStorage
+import org.hibernate.annotations.TimeZoneStorageType
 
 @Entity
 data class Film(
     @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
-    @Column(columnDefinition = "DATETIME(6)") val created: ZonedDateTime = ZonedDateTime.now().truncatedTo(ChronoUnit.MICROS),
+    @TimeZoneStorage(TimeZoneStorageType.NATIVE) @Column(columnDefinition = "DATETIME(6)") val created: ZonedDateTime = ZonedDateTime.now().truncatedTo(ChronoUnit.MICROS),
     val title: String,
     val year: Int,
     val plot: String? = null,

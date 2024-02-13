@@ -1,5 +1,7 @@
 package pl.ciruk.filmbag.boundary
 
+import jakarta.ws.rs.*
+import jakarta.ws.rs.core.MediaType
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -7,8 +9,6 @@ import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.request.RequestProcessor
 import java.math.BigDecimal
-import javax.ws.rs.*
-import javax.ws.rs.core.MediaType
 
 private val logger = KotlinLogging.logger {}
 

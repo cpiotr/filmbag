@@ -6,12 +6,12 @@ import pl.ciruk.filmbag.request.DataLoader
 import java.lang.Exception
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.ws.rs.*
-import javax.ws.rs.container.AsyncResponse
-import javax.ws.rs.container.ConnectionCallback
-import javax.ws.rs.container.Suspended
-import javax.ws.rs.core.MediaType
-import javax.ws.rs.core.Response
+import jakarta.ws.rs.*
+import jakarta.ws.rs.container.AsyncResponse
+import jakarta.ws.rs.container.ConnectionCallback
+import jakarta.ws.rs.container.Suspended
+import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.core.Response
 
 @Service
 @Path("/import")

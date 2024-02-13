@@ -6,7 +6,7 @@ import pl.ciruk.filmbag.boundary.FilmReadResource
 import pl.ciruk.filmbag.boundary.FilmWriteResource
 import pl.ciruk.filmbag.boundary.ImportResource
 import pl.ciruk.filmbag.boundary.JournalResource
-import javax.ws.rs.ApplicationPath
+import jakarta.ws.rs.ApplicationPath
 
 @Configuration
 @ApplicationPath("/resources")

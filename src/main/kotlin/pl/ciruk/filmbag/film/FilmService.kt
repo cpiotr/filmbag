@@ -11,7 +11,7 @@ import pl.ciruk.filmbag.boundary.ClosedRange
 import java.math.BigDecimal
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 @Service
 class FilmService(private val repository: FilmRepository) {

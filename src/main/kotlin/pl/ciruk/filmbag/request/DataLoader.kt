@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 import kotlin.math.max
 
 

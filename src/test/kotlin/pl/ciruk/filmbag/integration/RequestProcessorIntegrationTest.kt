@@ -19,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmReadResource
 import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.film.ScoreType
 import pl.ciruk.filmbag.request.DataLoader
@@ -36,7 +37,8 @@ import redis.clients.jedis.JedisPool
 @Testcontainers
 class RequestProcessorIntegrationTest(
     @Autowired val restTemplate: TestRestTemplate,
-    @Autowired val genreService: GenreService
+    @Autowired val genreService: GenreService,
+    @Autowired val filService: FilmService
 ) {
 
     @Test
@@ -45,7 +47,9 @@ class RequestProcessorIntegrationTest(
         val otherFilmRequest = testOtherFilmRequest()
 
         executePutRequest(filmRequest, otherFilmRequest)
+        val find = filService.find()
         val arrayOfFilmRequests = executeGetRequest()
+
 
         assertThat(arrayOfFilmRequests).containsOnly(filmRequest, otherFilmRequest)
     }
@@ -198,7 +202,7 @@ class RequestProcessorIntegrationTest(
 
         @JvmStatic
         @DynamicPropertySource
-        fun redisProperties(registry: DynamicPropertyRegistry) {
+        fun databaseProperties(registry: DynamicPropertyRegistry) {
             registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
         }
     }
