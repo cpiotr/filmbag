@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "Migrating database"
-$APP_DIR/gradlew flywayMigrate \
+gradle flywayMigrate \
         -i \
         -Pflyway.url=$JDBC_URL \
         -Pflyway.baselineOnMigrate=true

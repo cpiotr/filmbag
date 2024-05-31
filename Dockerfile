@@ -1,4 +1,4 @@
-FROM eclipse-temurin:19-alpine
+FROM gradle:8.7.0-jdk21-alpine as build
 MAINTAINER c.piotre@gmail.com
 
 VOLUME /tmp
@@ -38,7 +38,7 @@ COPY ./ /filmbag/
 ARG APP_DIR=/filmbag
 ENV APP_DIR=${APP_DIR}
 WORKDIR $APP_DIR
-RUN sh -c './gradlew clean build -Pversion=$APP_VERSION -x check'
+RUN sh -c 'gradle clean build -Pversion=$APP_VERSION -x check'
 
 EXPOSE ${JMX_PORT}
 EXPOSE ${APP_PORT}
@@ -47,7 +47,7 @@ EXPOSE ${APP_PORT}
 RUN apk add --update netcat-openbsd && rm -rf /var/cache/apk/*
 
 CMD sh -c " \
-    ./gradlew flywayMigrate \
+    gradle flywayMigrate \
         -i \
         -Pflyway.url='$JDBC_URL' \
         -Pflyway.baselineOnMigrate=true \
