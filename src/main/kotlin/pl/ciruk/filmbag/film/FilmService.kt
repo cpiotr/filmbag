@@ -6,71 +6,68 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import pl.ciruk.filmbag.boundary.*
-import pl.ciruk.filmbag.boundary.ClosedRange
+import org.springframework.transaction.support.TransactionTemplate
 import java.math.BigDecimal
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import jakarta.annotation.PostConstruct
 
 @Service
-class FilmService(private val repository: FilmRepository) {
+class FilmService(
+        private val repository: FilmRepository,
+        private val transactionTemplate: TransactionTemplate
+) {
     private val logger = KotlinLogging.logger {}
-
-    private val existingFilmHashes = ConcurrentHashMap<Int, Long>()
 
     @Transactional
     fun storeAll(films: List<Film>) {
-        val (filmsToBeUpdated, filmsToBeStored) = films
-                .partition { existingFilmHashes.containsKey(it.hash) }
+        if (films.isEmpty()) {
+            return
+        }
 
-        val filmsToBeUpdatedById = filmsToBeUpdated.associateBy { existingFilmHashes[it.hash] }
-        repository.findAllById(filmsToBeUpdatedById.keys)
-                .filter {
-                    val film = filmsToBeUpdatedById[it.id] ?: error("Missing film data for id: ${it.id}")
-                    copyScoreFrom(film).invoke(it)
-                }
+        val hashes = films.map { it.identityHash }
+        val storedFilmsByHash = repository
+                .findAll(Specification { film, _, _ -> film.get<String>("identityHash").`in`(hashes) })
+                .associateBy { it.identityHash }
+        val (filmsToBeUpdated, filmsToBeStored) = films
+                .partition { storedFilmsByHash.containsKey(it.identityHash) }
+
+        filmsToBeUpdated
+                .map { storedFilmsByHash.getValue(it.identityHash) to it }
+                .filter { (storedFilm, film) -> copyScoreFrom(film).invoke(storedFilm) }
+                .map { (storedFilm, _) -> storedFilm }
                 .apply {
                     val updated = repository.saveAll(this)
                     logger.info { "Updated ${updated.size} films" }
                 }
 
         repository.saveAll(filmsToBeStored)
-                .onEach { existingFilmHashes[it.hash] = it.id!! }
                 .apply { logger.info { "Stored ${this.size} films" } }
     }
 
     @Transactional(readOnly = true)
     fun find(
-            year: Range<Int> = EmptyRange(),
-            score: Range<BigDecimal> = EmptyRange(),
+            year: Range<Int> = Unbounded(),
+            score: Range<BigDecimal> = Unbounded(),
             page: Int = 0,
             pageSize: Int = 10): List<Film> {
         logger.info { "Find by year=$year; score=$score; page=$page; pageSize=$pageSize" }
 
-        val allSpecifications = listOf(Pair(year, "year"), Pair(score, "score"))
-                .mapNotNull { createSpecification(it.first, it.second) }
-
+        val specification = Specification.allOf(listOfNotNull(
+                createSpecification(year, "year"),
+                createSpecification(score, "score")))
         val pageRequest = PageRequest.of(page, pageSize, Sort.by("created").descending())
 
-        return if (allSpecifications.isEmpty()) {
-            repository
-                    .findAll(pageRequest)
-                    .content
-        } else {
-            val specification = allSpecifications.reduce { first, second -> first.and(second)!! }
-            repository
-                    .findAll(specification, pageRequest)
-                    .content
-        }
+        return repository
+                .findAll(specification, pageRequest)
+                .content
     }
 
     private fun <T : Comparable<T>> createSpecification(range: Range<T>, propertyName: String): Specification<Film>? {
         return when (range) {
-            is LeftClosedRange -> Specification { film, _, builder -> builder.greaterThanOrEqualTo(film[propertyName], range.from) }
-            is RightClosedRange -> Specification { film, _, builder -> builder.lessThanOrEqualTo(film[propertyName], range.to) }
-            is ClosedRange -> Specification { film, _, builder -> builder.between(film[propertyName], range.from, range.to) }
-            is EmptyRange -> null
+            is AtLeast -> Specification { film, _, builder -> builder.greaterThanOrEqualTo(film[propertyName], range.from) }
+            is AtMost -> Specification { film, _, builder -> builder.lessThanOrEqualTo(film[propertyName], range.to) }
+            is Between -> Specification { film, _, builder -> builder.between(film[propertyName], range.from, range.to) }
+            is Unbounded -> null
         }
     }
 
@@ -86,28 +83,21 @@ class FilmService(private val repository: FilmRepository) {
         }
     }
 
+    // @Transactional doesn't apply to @PostConstruct methods, hence the explicit transaction
     @PostConstruct
-    @Transactional
-    private fun updateHashIfComponentsChanged() {
-        val filmsById = repository.findAll()
-                .associateBy(Film::id)
-                .toMutableMap()
+    private fun recalculateIdentityAndRemoveDuplicates() {
+        transactionTemplate.executeWithoutResult {
+            val (filmsToBeUpdated, filmsToBeDeleted) = selectUpdatableAndDeletable(repository.findAll())
+            if (filmsToBeUpdated.isNotEmpty()) {
+                repository.saveAll(filmsToBeUpdated)
+                logger.info { "Updated ${filmsToBeUpdated.size} films" }
+            }
 
-        val (filmsToBeUpdated, filmsToBeDeleted) = selectUpdatableAndDeletable(filmsById.values)
-        if (filmsToBeUpdated.isNotEmpty()) {
-            repository.saveAll(filmsToBeUpdated)
-            logger.info { "Updated ${filmsToBeUpdated.size} films" }
-            filmsToBeUpdated.forEach { filmsById[it.id] = it }
+            if (filmsToBeDeleted.isNotEmpty()) {
+                repository.deleteAll(filmsToBeDeleted)
+                logger.info { "Deleted ${filmsToBeDeleted.size} films" }
+            }
         }
-
-        if (filmsToBeDeleted.isNotEmpty()) {
-            repository.deleteAll(filmsToBeDeleted)
-            logger.info { "Deleted ${filmsToBeDeleted.size} films" }
-            filmsToBeDeleted.forEach { filmsById.remove(it.id) }
-        }
-
-        filmsById.values
-                .forEach { existingFilmHashes[it.hash] = it.id!! }
     }
 
     private fun selectUpdatableAndDeletable(films: Collection<Film>): Pair<MutableList<Film>, MutableList<Film>> {
@@ -115,13 +105,15 @@ class FilmService(private val repository: FilmRepository) {
         val filmsToBeDeleted = mutableListOf<Film>()
 
         val filmsByHash = films.mapNotNull { copyIfHashChanged(it) }
-                .groupBy { it.hash }
+                .groupBy { it.identityHash }
 
         filmsByHash
                 .values
                 .map { it.sortedByDescending(Film::created) }
                 .forEach {
-                    logger.info { "Films sharing the same hash: ${it.map(Film::toString)}" }
+                    if (it.size > 1) {
+                        logger.info { "Films sharing the same hash: ${it.map(Film::toString)}" }
+                    }
                     filmsToBeUpdated.add(it.first())
                     filmsToBeDeleted.addAll(it.drop(1))
                 }
@@ -129,9 +121,9 @@ class FilmService(private val repository: FilmRepository) {
     }
 
     private fun copyIfHashChanged(it: Film): Film? {
-        val hash = Objects.hash(it.title, it.year, it.genres)
-        return if (hash != it.hash) {
-            it.copy(hash = hash)
+        val hash = identityHashOf(it.title, it.year, it.genres)
+        return if (hash != it.identityHash) {
+            it.copy(identityHash = hash)
         } else {
             null
         }

@@ -11,17 +11,13 @@ import pl.ciruk.filmbag.boundary.FilmRequest
 @Service
 class JournalSerializer {
     private val logger = KotlinLogging.logger {}
-    private val buffer = LinkedBuffer.allocate(1024)
     private val schema = RuntimeSchema.getSchema(DataWrapper::class.java)
 
     fun serialize(requests: List<FilmRequest>): ByteArray {
         logger.debug { "Serializing: ${requests.size} requests" }
 
-        return try {
-            ProtostuffIOUtil.toByteArray(DataWrapper(requests), schema, buffer)
-        } finally {
-            buffer.clear()
-        }
+        // A LinkedBuffer is not thread-safe, so each call gets its own
+        return ProtostuffIOUtil.toByteArray(DataWrapper(requests), schema, LinkedBuffer.allocate(1024))
     }
 
     fun deserialize(bytes: ByteArray): List<FilmRequest> {

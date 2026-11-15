@@ -3,9 +3,9 @@ package pl.ciruk.filmbag.boundary
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.request.DataLoader
-import java.lang.Exception
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
+import pl.ciruk.filmbag.request.ImportAlreadyRunningException
+import java.io.IOException
+import java.util.concurrent.CompletionException
 import jakarta.ws.rs.*
 import jakarta.ws.rs.container.AsyncResponse
 import jakarta.ws.rs.container.ConnectionCallback
@@ -18,32 +18,38 @@ import jakarta.ws.rs.core.Response
 class ImportResource(private val dataLoader: DataLoader) {
     private val logger = KotlinLogging.logger {}
 
-    private val threadPool = Executors.newSingleThreadExecutor()
-
-    @GET
+    @POST
     @Path("/{offset}")
     @Produces(MediaType.APPLICATION_JSON)
     fun import(
             @Suspended asyncResponse: AsyncResponse,
-            @PathParam("offset") @DefaultValue("0") offset: Int?) {
+            @PathParam("offset") offset: Int) {
         logger.info { "Importing from offset: $offset" }
 
-        asyncResponse.register(ConnectionCallback() {
+        if (offset < 0) {
+            asyncResponse.resume(textResponse(Response.Status.BAD_REQUEST, "offset must be at least 0"))
+            return
+        }
+
+        val importResult = try {
+            dataLoader.importAsync(offset)
+        } catch (e: ImportAlreadyRunningException) {
+            asyncResponse.resume(textResponse(Response.Status.CONFLICT, e.message!!))
+            return
+        }
+
+        asyncResponse.register(ConnectionCallback {
             logger.info { "Connection cancelled" }
             dataLoader.cancelImport()
         })
-        try {
-            val lastPage = dataLoader.importAsync(offset ?: 0)
-                    .join()
-            asyncResponse.resume(Response.accepted(lastPage).build())
-        } catch (it: Exception) {
-            logger.error(it) { "Cannot import data at offset $offset" }
-            val response = Response.serverError().entity(it.message).build()
-            asyncResponse.resume(response)
+        importResult.whenComplete { lastPage, error ->
+            asyncResponse.resume(
+                    if (error == null) Response.accepted(lastPage).build()
+                    else failureResponse(error))
         }
     }
 
-    @GET
+    @POST
     @Path("/cancel")
     @Produces(MediaType.APPLICATION_JSON)
     fun cancel(): Response {
@@ -52,5 +58,16 @@ class ImportResource(private val dataLoader: DataLoader) {
         dataLoader.cancelImport()
 
         return Response.ok().build()
+    }
+
+    private fun failureResponse(error: Throwable): Response {
+        return when (val cause = (error as? CompletionException)?.cause ?: error) {
+            is IOException -> textResponse(Response.Status.BAD_GATEWAY, "Import failed: ${cause.message}")
+            else -> textResponse(Response.Status.INTERNAL_SERVER_ERROR, "Import failed")
+        }
+    }
+
+    private fun textResponse(status: Response.Status, message: String): Response {
+        return Response.status(status).type(MediaType.TEXT_PLAIN).entity(message).build()
     }
 }

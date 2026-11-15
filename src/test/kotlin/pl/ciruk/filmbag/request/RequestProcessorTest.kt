@@ -1,6 +1,7 @@
 package pl.ciruk.filmbag.request
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
 class RequestProcessorTest {
@@ -15,6 +16,12 @@ class RequestProcessorTest {
                 .hasSize(limit)
                 .endsWith("...")
                 .startsWith("Tex")
+    }
+
+    @Test
+    fun `should reject limit shorter than the ellipsis`() {
+        assertThatThrownBy { trimToLimit("Text", 2) }
+                .isInstanceOf(IllegalArgumentException::class.java)
     }
 
     @Test

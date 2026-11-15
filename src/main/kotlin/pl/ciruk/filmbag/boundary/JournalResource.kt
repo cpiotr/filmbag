@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.request.RequestProcessor
-import jakarta.ws.rs.GET
+import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
@@ -21,7 +21,7 @@ class JournalResource(
 ) {
     private val logger = KotlinLogging.logger {}
 
-    @GET
+    @POST
     @Path("/replay")
     @Produces(MediaType.APPLICATION_JSON)
     fun replay(): Response {
@@ -30,7 +30,7 @@ class JournalResource(
         return Response.accepted().build()
     }
 
-    @GET
+    @POST
     @Path("/snapshot")
     @Produces(MediaType.APPLICATION_JSON)
     @Transactional(readOnly = true)
@@ -39,7 +39,7 @@ class JournalResource(
         val size = 100
         do {
             val pageOfFilms = filmService.find(page = page, pageSize = size).map { it.convertToRequest() }
-            journal.recordAsSnapshot(pageOfFilms)
+            journal.record(pageOfFilms)
             page++
         } while (pageOfFilms.size == size)
         return Response.accepted(mapOf(Pair("journalEntries", page))).build()

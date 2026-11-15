@@ -2,10 +2,12 @@ package pl.ciruk.filmbag.boundary
 
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.core.Response
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.FilmService
+import pl.ciruk.filmbag.film.rangeOf
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.request.RequestProcessor
 import java.math.BigDecimal
@@ -19,43 +21,25 @@ class FilmReadResource(private val filmService: FilmService) {
     @Produces(MediaType.APPLICATION_JSON)
     @Transactional(readOnly = true)
     fun findAll(
-        @DefaultValue(missingInt.toString()) @QueryParam("yearFrom") yearFrom: Int,
-        @DefaultValue(missingInt.toString()) @QueryParam("yearTo") yearTo: Int,
-        @DefaultValue(missingDecimal.toString()) @QueryParam("scoreFrom") scoreFrom: BigDecimal,
-        @DefaultValue(missingDecimal.toString()) @QueryParam("scoreTo") scoreTo: BigDecimal,
+        @QueryParam("yearFrom") yearFrom: Int?,
+        @QueryParam("yearTo") yearTo: Int?,
+        @QueryParam("scoreFrom") scoreFrom: BigDecimal?,
+        @QueryParam("scoreTo") scoreTo: BigDecimal?,
         @DefaultValue(firstPage.toString()) @QueryParam("page") page: Int,
         @DefaultValue(defaultPageSize.toString()) @QueryParam("pageSize") pageSize: Int
     ): List<FilmRequest> {
-        val yearRange = createYearRange(yearFrom, yearTo)
-        val scoreRange = createScoreRange(scoreFrom, scoreTo)
+        if (page < 0 || pageSize !in 1..maxPageSize) {
+            throw badRequest("page must be at least 0 and pageSize between 1 and $maxPageSize")
+        }
 
-        return filmService.find(yearRange, scoreRange, page, pageSize)
+        return filmService.find(rangeOf(yearFrom, yearTo), rangeOf(scoreFrom, scoreTo), page, pageSize)
             .map { it.convertToRequest() }
     }
 
-    private fun createScoreRange(scoreFrom: BigDecimal, scoreTo: BigDecimal): Range<BigDecimal> {
-        return when (Pair(scoreFrom, scoreTo)) {
-            Pair(missingDecimal.toBigDecimal(), missingDecimal.toBigDecimal()) -> EmptyRange()
-            Pair(scoreFrom, missingDecimal.toBigDecimal()) -> LeftClosedRange(scoreFrom)
-            Pair(missingDecimal.toBigDecimal(), scoreTo) -> RightClosedRange(scoreTo)
-            else -> ClosedRange(scoreFrom, scoreTo)
-        }
-    }
-
-    private fun createYearRange(yearFrom: Int, yearTo: Int): Range<Int> {
-        return when (Pair(yearFrom, yearTo)) {
-            Pair(missingInt, missingInt) -> EmptyRange()
-            Pair(yearFrom, missingInt) -> LeftClosedRange(yearFrom)
-            Pair(missingInt, yearTo) -> RightClosedRange(yearTo)
-            else -> ClosedRange(yearFrom, yearTo)
-        }
-    }
-
     companion object {
-        const val missingInt = -1
-        const val missingDecimal = -1.0
         const val firstPage = 0
         const val defaultPageSize = 10
+        const val maxPageSize = 100
     }
 }
 
@@ -68,9 +52,25 @@ class FilmWriteResource(
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
-    fun storeIfAbsent(filmRequests: List<FilmRequest>) {
+    fun storeOrUpdateScores(filmRequests: List<FilmRequest>) {
+        val problems = filmRequests.mapIndexedNotNull { index, filmRequest ->
+            filmRequest.missingRequiredFields()
+                .takeIf { it.isNotEmpty() }
+                ?.let { "film $index is missing ${it.joinToString()}" }
+        }
+        if (problems.isNotEmpty()) {
+            throw badRequest(problems.joinToString("; "))
+        }
+
         logger.info { "Store ${filmRequests.size} films, if missing" }
         journal.recordAsync(filmRequests)
         requestProcessor.storeAll(filmRequests)
     }
 }
+
+private fun badRequest(message: String) = BadRequestException(
+    Response.status(Response.Status.BAD_REQUEST)
+        .type(MediaType.TEXT_PLAIN)
+        .entity(message)
+        .build()
+)

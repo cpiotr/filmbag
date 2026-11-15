@@ -17,7 +17,14 @@ data class FilmRequest(
     val numberOfScores: Int = 0,
     val scores: Set<ScoreRequest> = mutableSetOf(),
     val genres: Set<String> = mutableSetOf()
-)
+) {
+    fun missingRequiredFields(): List<String> = listOfNotNull(
+        "title".takeIf { title == null },
+        "year".takeIf { year == null },
+        "link".takeIf { link == null },
+        "score".takeIf { score == null }
+    )
+}
 
 data class ScoreRequest(
     val grade: Double? = null,
@@ -44,21 +51,4 @@ fun Film.convertToRequest(): FilmRequest {
         plot = this.plot,
         poster = this.poster
     )
-}
-
-sealed class Range<in T : Comparable<T>>
-data class LeftClosedRange<T : Comparable<T>>(val from: T) : Range<T>() {
-    override fun toString() = "<$from, ∞)"
-}
-
-data class RightClosedRange<T : Comparable<T>>(val to: T) : Range<T>() {
-    override fun toString() = "(∞, $to>"
-}
-
-data class ClosedRange<T : Comparable<T>>(val from: T, val to: T) : Range<T>() {
-    override fun toString() = "<$from, $to>"
-}
-
-class EmptyRange<T : Comparable<T>> : Range<T>() {
-    override fun toString() = "<>"
 }

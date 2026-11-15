@@ -9,13 +9,14 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.config.logConfiguration
-import pl.ciruk.filmbag.function.runWithFallback
+import java.io.IOException
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
 import jakarta.annotation.PostConstruct
 import kotlin.math.max
@@ -27,11 +28,13 @@ class DataLoader(
         private val journal: Journal,
         private val httpClient: OkHttpClient,
         private val mapper: ObjectMapper,
+        private val taskExecutor: TaskExecutor,
         @Value("\${external.provider.filmrequest.url}") private val url: String,
         @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
     private val logger = KotlinLogging.logger {}
-    private val threadPool = Executors.newSingleThreadExecutor()
-    private val cancelled = AtomicBoolean(false)
+
+    /** Cancellation flag of the running import, or null when no import runs. */
+    private val runningImportCancelled = AtomicReference<AtomicBoolean?>(null)
 
     @PostConstruct
     fun logConfiguration() {
@@ -39,25 +42,32 @@ class DataLoader(
         logger.logConfiguration("Film provider limit", limit)
     }
 
+    /** @throws ImportAlreadyRunningException when another import has not finished yet */
     fun importAsync(offset: Int = 0): CompletableFuture<Int> {
+        val cancelled = AtomicBoolean(false)
+        if (!runningImportCancelled.compareAndSet(null, cancelled)) {
+            throw ImportAlreadyRunningException()
+        }
         logger.info("Import from offset: $offset")
 
         return CompletableFuture
-                .supplyAsync(Supplier { loadDataOrThrow(offset) }, threadPool)
-                .exceptionally { runWithFallback(0) { logError(it) } }
+                .supplyAsync(Supplier { importPages(offset, cancelled) }, taskExecutor)
+                .whenComplete { _, error ->
+                    runningImportCancelled.set(null)
+                    error?.let { logger.error(it) { "Error while loading data" } }
+                }
     }
 
     fun cancelImport() {
         logger.info { "Cancelling import" }
 
-        cancelled.set(true)
+        runningImportCancelled.get()?.set(true)
     }
 
-    private fun loadDataOrThrow(offset: Int): Int {
+    private fun importPages(offset: Int, cancelled: AtomicBoolean): Int {
         logger.info("Loading data from: $url")
 
-        cancelled.set(false)
-        val films = generateSequenceOfFilms(offset + 1)
+        val films = generateSequenceOfFilms(offset + 1, cancelled)
         val processedPagesCount = recordAndStoreUpToLimit(films)
         val lastPageIndex = max(offset + processedPagesCount - 1, 0)
         logger.info("Finished loading data. Last offset was: $lastPageIndex")
@@ -89,17 +99,13 @@ class DataLoader(
         requestProcessor.storeAll(filmRequests)
     }
 
-    private fun generateSequenceOfFilms(offset: Int): Sequence<List<FilmRequest>> {
+    private fun generateSequenceOfFilms(offset: Int, cancelled: AtomicBoolean): Sequence<List<FilmRequest>> {
         return generateSequence(offset) { it + 1 }
                 .takeWhile { !cancelled.get() }
                 .map { fetchFilmsFromPage(it) }
     }
 
     private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
-        if (Thread.currentThread().isInterrupted) {
-            return emptyList()
-        }
-
         logger.info { "Fetch films from $index page" }
 
         val currentUrl = url.toHttpUrl()
@@ -115,21 +121,18 @@ class DataLoader(
                 .use { response -> response.parse() }
     }
 
-    private fun logError(error: Throwable) {
-        logger.error(error) { "Error while loading data" }
-    }
-
     private fun Response.parse(): List<FilmRequest> {
-        return if (this.isSuccessful) {
-            this.body
-                    ?.parse()
-                    .orEmpty()
-        } else {
-            emptyList()
+        if (!this.isSuccessful) {
+            throw IOException("Film provider returned HTTP ${this.code} for ${this.request.url}")
         }
+        return this.body
+                ?.parse()
+                .orEmpty()
     }
 
     private fun ResponseBody.parse(): List<FilmRequest> {
         return mapper.readValue(this.string())
     }
 }
+
+class ImportAlreadyRunningException : IllegalStateException("An import is already running")

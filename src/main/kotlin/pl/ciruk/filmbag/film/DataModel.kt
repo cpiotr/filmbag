@@ -2,6 +2,7 @@ package pl.ciruk.filmbag.film
 
 import org.hibernate.annotations.Fetch
 import org.hibernate.annotations.FetchMode
+import java.security.MessageDigest
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalUnit
@@ -21,7 +22,7 @@ data class Film(
     val plot: String? = null,
     val link: String,
     val poster: String? = null,
-    var score: Double,
+    @Column(columnDefinition = "DECIMAL(24,18)") var score: Double,
 
     @OneToMany(cascade = [ALL], mappedBy = "film", orphanRemoval = true)
     val scores: MutableSet<Score> = mutableSetOf(),
@@ -35,16 +36,12 @@ data class Film(
     )
     val genres: Set<Genre> = mutableSetOf(),
 
-    val hash: Int = Objects.hash(title, year, genres)
+    @Column(name = "identity_hash", columnDefinition = "CHAR(64)")
+    val identityHash: String = identityHashOf(title, year, genres)
 ) {
+    /** @return false if the film already has an equal score */
     fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?): Boolean {
-        val newScore = Score(grade = grade, quantity = quantity, url = url, type = type, film = this)
-        for (score in scores) {
-            if (score.hasSameProperties(newScore)) {
-                return false
-            }
-        }
-        return scores.add(newScore)
+        return scores.add(Score(grade = grade, quantity = quantity, url = url, type = type, film = this))
     }
 
     override fun equals(other: Any?): Boolean {
@@ -54,14 +51,15 @@ data class Film(
         other as Film
 
         if (id != other.id) return false
-        if (hash != other.hash) return false
+        if (identityHash != other.identityHash) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = id?.hashCode() ?: 0
-        result = 31 * result + hash
+        // Null for films stored before the column existed, until the startup job fills it
+        result = 31 * result + Objects.hashCode(identityHash)
         return result
     }
 
@@ -70,39 +68,39 @@ data class Film(
     }
 }
 
+/** Films with the same title, year and genre names are the same film. */
+fun identityHashOf(title: String, year: Int, genres: Collection<Genre>): String {
+    val identity = (listOf(title, year.toString()) + genres.map { it.name }.sorted())
+        .joinToString(UNIT_SEPARATOR)
+    val digest = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
+    return HexFormat.of().formatHex(digest)
+}
+
+private const val UNIT_SEPARATOR = "\u001F"
+
 @Entity
 data class Score(
     @Id @GeneratedValue(strategy = SEQUENCE) val id: Long? = null,
-    @Enumerated(EnumType.STRING) val type: ScoreType,
-    val grade: Double,
+    @Enumerated(EnumType.STRING) @Column(columnDefinition = "VARCHAR(32)") val type: ScoreType,
+    @Column(columnDefinition = "DECIMAL(24,18)") val grade: Double,
     val quantity: Long,
     val url: String? = null,
     @ManyToOne(cascade = [PERSIST, MERGE]) @JoinColumn(name = "film_id") val film: Film? = null
 ) {
+    // Equal scores of one film are the same score; the id is left out so the hash stays stable on persist
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
         other as Score
 
-        if (id != other.id) return false
-        if (grade != other.grade) return false
-        if (quantity != other.quantity) return false
-
-        return true
+        return type == other.type
+                && grade == other.grade
+                && quantity == other.quantity
+                && url == other.url
     }
 
-    override fun hashCode(): Int {
-        var result = id?.hashCode() ?: 0
-        result = 31 * result + grade.hashCode()
-        result = 31 * result + quantity.hashCode()
-        return result
-    }
-
-    fun hasSameProperties(other: Score) = Objects.equals(grade, other.grade)
-            && Objects.equals(quantity, other.quantity)
-            && Objects.equals(type, other.type)
-            && Objects.equals(url, other.url)
+    override fun hashCode(): Int = Objects.hash(type, grade, quantity, url)
 }
 
 @Entity

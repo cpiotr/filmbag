@@ -1,30 +1,35 @@
 package pl.ciruk.filmbag.request
 
 import mu.KotlinLogging
-import okhttp3.internal.and
+import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.function.runWithoutFallback
-import redis.clients.jedis.JedisPool
+import redis.clients.jedis.RedisClient
+import redis.clients.jedis.params.ScanParams
+import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 @Service
 class Journal(
-    private val redisPool: JedisPool,
-    private val journalSerializer: JournalSerializer
+    private val redisClient: RedisClient,
+    private val journalSerializer: JournalSerializer,
+    private val taskExecutor: TaskExecutor
 ) {
     private val logger = KotlinLogging.logger {}
-    private val threadPool = Executors.newSingleThreadExecutor()
     private val keyGenerator = AtomicLong(TimeUnit.MILLISECONDS.toNanos(Instant.now().toEpochMilli()))
 
     fun recordAsync(films: List<FilmRequest>) {
+        // The key is taken now, so replay keeps the order of requests even if writes finish out of order
+        val key = keyGenerator.incrementAndGet()
         CompletableFuture
-            .runAsync({ record(films) }, threadPool)
-            .exceptionally { runWithoutFallback { logger.error(it) { "Cannot record request with ${films.size} films" } } }
+            .runAsync({ record(key, journalSerializer.serialize(films)) }, taskExecutor)
+            .exceptionally {
+                logger.error(it) { "Cannot record request with ${films.size} films" }
+                null
+            }
     }
 
     fun record(films: List<FilmRequest>) {
@@ -34,30 +39,14 @@ class Journal(
         record(key, serializedRequest)
     }
 
-    fun recordAsSnapshot(films: List<FilmRequest>) {
-        val serializedRequest = journalSerializer.serialize(films)
-        val lastKey = findAllKeys().lastOrNull() ?: 0
-        val key = if (lastKey < Instant.now().toEpochMilli()) {
-            TimeUnit.MILLISECONDS.toNanos(lastKey) + 1
-        } else {
-            lastKey + 1
-        }
-
-        record(key, serializedRequest)
-    }
-
     fun deleteAll() {
         val keys = findAllKeysSerialized()
-        redisPool.resource.use {
-            keys.forEach { key -> it.del(key) }
-        }
+        keys.forEach { key -> redisClient.del(key) }
         logger.info { "Deleted ${keys.size} entries" }
     }
 
     private fun record(key: Long, serializedRequest: ByteArray) {
-        redisPool.resource.use {
-            it.set(key.toBytes(), serializedRequest)
-        }
+        redisClient.set(key.toBytes(), serializedRequest)
         logger.info("Record (key={}, size={})", key, serializedRequest.size)
     }
 
@@ -69,20 +58,23 @@ class Journal(
         }
 
         logger.info("Replaying ${keys.size} requests")
-        redisPool.resource.use {
-            return it.mget(*keys)
-                .asSequence()
-                .map(journalSerializer::deserialize)
-        }
+        return redisClient.mget(*keys)
+            .asSequence()
+            .map(journalSerializer::deserialize)
     }
 
+    // SCAN walks the keyspace in steps instead of blocking Redis like KEYS, but may return a key twice
     private fun findAllKeys(): List<Long> {
-        redisPool.resource.use {
-            val allKeys = "*".toByteArray()
-            return it.keys(allKeys)
-                .map { bytes -> bytes.toLong() }
-                .sorted()
-        }
+        val keys = mutableSetOf<Long>()
+        var cursor = ScanParams.SCAN_POINTER_START_BINARY
+        do {
+            val page = redisClient.scan(cursor, ScanParams().count(1000))
+            page.result
+                .filter { bytes -> bytes.size == Long.SIZE_BYTES }
+                .mapTo(keys) { bytes -> bytes.toLong() }
+            cursor = page.cursorAsBytes
+        } while (!page.isCompleteIteration)
+        return keys.sorted()
     }
 
     private fun findAllKeysSerialized(): Array<ByteArray> {
@@ -92,22 +84,6 @@ class Journal(
     }
 }
 
-fun Long.toBytes(): ByteArray {
-    var l = this
-    val result = ByteArray(Long.SIZE_BYTES)
-    for (i in Long.SIZE_BYTES - 1 downTo 0) {
-        result[i] = (l and 0xFF).toByte()
-        l = l shr Byte.SIZE_BITS
-    }
-    return result
-}
+private fun Long.toBytes(): ByteArray = ByteBuffer.allocate(Long.SIZE_BYTES).putLong(this).array()
 
-fun ByteArray.toLong(): Long {
-    var result: Long = 0
-    for (i in 0 until Long.SIZE_BYTES) {
-        result = result shl Byte.SIZE_BITS
-        val byte = this[i]
-        result = result or ((byte and 0xFF).toLong())
-    }
-    return result
-}
+private fun ByteArray.toLong(): Long = ByteBuffer.wrap(this).long

@@ -43,31 +43,18 @@ class JournalTest(@Autowired val journal: Journal) {
     }
 
     @Test
-    fun `should record snapshot and replay it after existing entries`() {
+    fun `should keep entries recorded before and after a snapshot`() {
         val filmRequest = testFilmRequest()
         val otherFilmRequest = testOtherFilmRequest()
         journal.record(listOf(filmRequest))
+
+        journal.record(listOf(filmRequest, otherFilmRequest))
         journal.record(listOf(otherFilmRequest))
 
-        journal.recordAsSnapshot(listOf(filmRequest, otherFilmRequest))
-
         val replayedRequests = journal.replay().toList()
 
         assertThat(replayedRequests)
-            .containsExactly(listOf(filmRequest), listOf(otherFilmRequest), listOf(filmRequest, otherFilmRequest))
-    }
-
-    @Test
-    fun `should record snapshot`() {
-        val filmRequest = testFilmRequest()
-        val otherFilmRequest = testOtherFilmRequest()
-
-        journal.recordAsSnapshot(listOf(filmRequest, otherFilmRequest))
-
-        val replayedRequests = journal.replay().toList()
-
-        assertThat(replayedRequests)
-            .containsExactly(listOf(filmRequest, otherFilmRequest))
+            .containsExactly(listOf(filmRequest), listOf(filmRequest, otherFilmRequest), listOf(otherFilmRequest))
     }
 
     @Test
@@ -80,7 +67,7 @@ class JournalTest(@Autowired val journal: Journal) {
 
     companion object {
         @Container
-        val redis = KGenericContainer("redis:5.0.3-alpine")
+        val redis = KGenericContainer("redis:8.4-alpine")
             .withExposedPorts(6379)!!
 
         @Container
@@ -91,7 +78,7 @@ class JournalTest(@Autowired val journal: Journal) {
         @JvmStatic
         @DynamicPropertySource
         fun redisProperties(registry: DynamicPropertyRegistry) {
-            registry.add("redis.host") { redis.containerIpAddress }
+            registry.add("redis.host") { redis.host }
             registry.add("redis.port") { redis.firstMappedPort }
             registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
         }
