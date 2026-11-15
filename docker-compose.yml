@@ -1,48 +1,47 @@
-version: '3.4'
 services:
   db:
-    image: mariadb:10.4.0-bionic
-    hostname: filmbag-db
+    image: mariadb:11.4
     volumes:
       - ./database/create-db.sql:/docker-entrypoint-initdb.d/V000__create_db.sql:ro
     environment:
       - MYSQL_ALLOW_EMPTY_PASSWORD=true
       - MYSQL_DATABASE=db
+      # Upgrades a data directory created by an older MariaDB on first start
+      - MARIADB_AUTO_UPGRADE=1
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
     ports:
       - "3306:3306"
   journal:
-    image: redis:5.0.0-alpine
-    hostname: filmbag-redis
+    image: redis:8.4-alpine
   filmbag:
-      build:
-        context: .
-        args:
-          - APP_VERSION=0.0.1
-      hostname: filmbag-app
-      environment:
-        - JMX_PORT=19999
-        - FILM_PROVIDER_URL=http://192.168.122.1:8080/resources/suggestions
-        - FILM_PROVIDER_LIMIT=50
-        - JDBC_URL=jdbc:mariadb://filmbag-db:3306/db
-        - REDIS_HOST=filmbag-redis
-        - APP_LOGGING_LEVEL=INFO
-        - JVM_OPTS=-Xmx1G
-          -Xms1G
-          -Xss2M
-          -XX:+TieredCompilation
-          -XX:InitialCodeCacheSize=128m
-          -XX:ReservedCodeCacheSize=128m
-          -XX:+PreserveFramePointer
-          -XX:+UnlockExperimentalVMOptions
-          -XX:+UseZGC
-          -Xlog:gc:stdout:time
-      ports:
-        - "18080:18080"
-        - "19999:19999"
-      depends_on:
-        - "db"
-        - "journal"
-      links:
-        - "db:filmbag-db"
-        - "journal:filmbag-redis"
-      command: ["sh", "-c", "./script/depend-on.sh filmbag-db 3306 60 && ./script/init-db.sh && ./script/run-app.sh"]
+    build:
+      context: .
+      args:
+        - APP_VERSION=0.0.1
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://db:3306/db
+      - REDIS_HOST=journal
+      - EXTERNAL_PROVIDER_FILMREQUEST_URL=http://192.168.122.1:8080/resources/suggestions
+      - EXTERNAL_PROVIDER_FILMREQUEST_LIMIT=50
+      - SPRING_SECURITY_USER_NAME=${FILMBAG_USER:-filmbag}
+      - SPRING_SECURITY_USER_PASSWORD=${FILMBAG_PASSWORD:?Set FILMBAG_PASSWORD to the API password}
+      - LOGGING_LEVEL_PL_CIRUK=INFO
+      - JDK_JAVA_OPTIONS=-Xmx1G
+        -Xms1G
+        -Xss2M
+        -XX:InitialCodeCacheSize=128m
+        -XX:ReservedCodeCacheSize=128m
+        -XX:+PreserveFramePointer
+        -XX:+UseZGC
+        -Xlog:gc:stdout:time
+    ports:
+      - "18080:18080"
+    depends_on:
+      db:
+        condition: service_healthy
+      journal:
+        condition: service_started
