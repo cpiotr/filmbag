@@ -1,7 +1,6 @@
 package pl.ciruk.filmbag.boundary
 
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.request.ReplayResult
@@ -29,15 +28,16 @@ class JournalResource(
     @POST
     @Path("/snapshot")
     @Produces(MediaType.APPLICATION_JSON)
-    @Transactional(readOnly = true)
     fun snapshot(): Response {
-        var page = 0
-        val size = 100
-        do {
-            val pageOfFilms = filmService.find(page = page, pageSize = size).map { it.convertToRequest() }
-            journal.record(pageOfFilms)
-            page++
-        } while (pageOfFilms.size == size)
-        return Response.accepted(mapOf(Pair("journalEntries", page))).build()
+        var entries = 0
+        for (films in filmService.findAllInPages(SNAPSHOT_PAGE_SIZE)) {
+            journal.record(films.map { it.convertToRequest() })
+            entries++
+        }
+        return Response.accepted(mapOf("journalEntries" to entries)).build()
+    }
+
+    companion object {
+        private const val SNAPSHOT_PAGE_SIZE = 100
     }
 }

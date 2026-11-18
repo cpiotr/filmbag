@@ -9,6 +9,7 @@ import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.ScoreRequest
 import pl.ciruk.filmbag.film.Film
 import pl.ciruk.filmbag.film.FilmService
+import pl.ciruk.filmbag.film.Genre
 import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.film.ScoreType
 
@@ -41,15 +42,14 @@ class RequestProcessor(
         (cause as? ConstraintViolationException)?.kind == ConstraintViolationException.ConstraintKind.UNIQUE
 
     private fun store(validRequests: List<FilmRequest>) {
-        val genresFromRequests = validRequests.flatMap { it.genres }.toSet()
-        genreService.merge(genresFromRequests)
+        val genresByName = genreService.merge(validRequests.flatMap { it.genres }).associateBy { it.name }
 
-        val films = validRequests.map { convertToFilm(it) }
+        val films = validRequests.map { convertToFilm(it, genresByName) }
         filmService.storeAll(films)
     }
 
-    private fun convertToFilm(filmRequest: FilmRequest): Film {
-        val genres = genreService.merge(filmRequest.genres)
+    private fun convertToFilm(filmRequest: FilmRequest, genresByName: Map<String, Genre>): Film {
+        val genres = filmRequest.genres.map { genresByName.getValue(it) }.toSet()
 
         val film = Film(
                 created = filmRequest.created,

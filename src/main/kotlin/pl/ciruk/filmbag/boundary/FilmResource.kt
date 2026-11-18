@@ -5,7 +5,6 @@ import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.rangeOf
 import pl.ciruk.filmbag.request.Journal
@@ -19,7 +18,6 @@ private val logger = KotlinLogging.logger {}
 class FilmReadResource(private val filmService: FilmService) {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Transactional(readOnly = true)
     fun findAll(
         @QueryParam("yearFrom") yearFrom: Int?,
         @QueryParam("yearTo") yearTo: Int?,

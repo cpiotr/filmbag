@@ -233,7 +233,37 @@ Decided 2026-11-18:
   - [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457).
   - Jakarta REST 3.1 §3.2 (`@QueryParam` failure gives 404).
 
-### 5. [ ] Cheap performance fixes (Major/Minor, measured)
+### 5. [x] Cheap performance fixes (Major/Minor, measured)
+> **Done 2026-11-18.** All four sub-steps are in.
+>
+> **Measured** with the reviewer's harness, adapted to the new schema and journal: 20.5k films; statements are
+> exact.
+>
+> | Operation | Before | After |
+> |---|---|---|
+> | Import of 500 new films | 4,596 statements, 1,249 ms | 102 statements, 540 ms |
+> | Unchanged re-import | 544 statements, 206 ms | 43 statements, 123 ms |
+> | GET page | 4 statements | 3 statements (no count) |
+> | Replay | 23,953 statements, 5,035 ms | 969 statements, 1,346 ms |
+> | Snapshot | 2,137 ms, 1 transaction holding 103k entities | 963 ms, one short transaction per page |
+>
+> - **5a, 5b:** done as planned.
+> - **5d:**
+>   - GET uses a `Slice` sorted by `(created, id)`.
+>   - The snapshot pages by keyset (`findAllInPages`).
+>   - `FilmService` loads scores and genres before returning, so no resource holds a transaction any more.
+>   - Gotcha: `FetchableFluentQuery.slice(pageable)` ignores `sortBy(...)`, so the sort must be in the
+>     `PageRequest`. `scroll` does honour `sortBy`.
+> - **5c:** compose uses `MaxRAMPercentage=75` with `mem_limit: 768m`. Under that limit the JVM picks **Serial
+>   GC**, not G1: ergonomics choose Serial below about 1.8 GB. GC pauses are about 1 ms.
+> - **Load test on the real image:**
+>   - Snapshot and replay of 20k films, with replay inserting all 20k as new: 1.8 s each.
+>   - cgroup `memory.peak` was 390 MiB of 768 MiB; no OOM.
+> - **Small leftover:** slices and keyset windows read `size + 1` rows, so pages of 100 trigger two genre batch
+>   loads. That is harmless; it goes away with `default_batch_fetch_size` above 100, or after step 8 replaces
+>   `@Fetch(JOIN)`.
+> - **Tests:** 62 pass.
+
 - [ ] **5a. Merge genres once per batch** (`RequestProcessor.kt:24-32`)
   - **Change:** `val genresByName = genreService.merge(validRequests.flatMap { it.genres }).associateBy { it.name }`,
     passed into `convertToFilm`, which looks genres up in that map instead of querying.

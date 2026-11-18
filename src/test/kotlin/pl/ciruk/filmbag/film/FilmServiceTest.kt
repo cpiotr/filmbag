@@ -18,6 +18,7 @@ import pl.ciruk.filmbag.integration.TestConfiguration
 import pl.ciruk.filmbag.request.RequestProcessor
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
+import java.time.ZonedDateTime
 
 @ExtendWith(SpringExtension::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -134,6 +135,28 @@ internal class FilmServiceTest(
 
         assertThat(films.map { it.title })
             .isEmpty()
+    }
+
+    @Test
+    fun `should page through every film once, newest first, even when films share a creation time`() {
+        val sameTime = ZonedDateTime.parse("2001-01-01T00:00:00Z")
+        val filmsCreatedTogether = List(5) { testOtherFilmRequest(year = 2000 + it).copy(created = sameTime) }
+        requestProcessor.storeAll(filmsCreatedTogether)
+
+        val pages = filmService.findAllInPages(pageSize = 2).toList()
+
+        assertThat(pages.map { it.size }).containsExactly(2, 2, 2, 2)
+        assertThat(pages.flatten().map { it.title })
+            .containsExactlyElementsOf((listOf(thirdFilm, secondFilm, firstFilm) + filmsCreatedTogether.reversed()).map { it.title })
+        assertThat(pages.flatten().flatMap { it.scores }).isNotEmpty()
+    }
+
+    @Test
+    fun `should find films whose scores and genres can be read after the transaction`() {
+        val films = filmService.find()
+
+        assertThat(films.flatMap { it.scores }).isNotEmpty()
+        assertThat(films.flatMap { it.genres }).isNotEmpty()
     }
 
     companion object {

@@ -38,14 +38,16 @@ services:
       - SPRING_SECURITY_USER_NAME=${FILMBAG_USER:-filmbag}
       - SPRING_SECURITY_USER_PASSWORD=${FILMBAG_PASSWORD:?Set FILMBAG_PASSWORD to the API password}
       - LOGGING_LEVEL_PL_CIRUK=INFO
-      - JDK_JAVA_OPTIONS=-Xmx1G
-        -Xms1G
+      # The heap starts small and may grow to 75% of mem_limit. Under this limit the JVM picks
+      # Serial GC (pauses of about 1 ms here). A fixed -Xms1G with ZGC kept the whole heap
+      # committed: about 1.2 GiB, where snapshot and replay of 20k films peak at about 0.4 GiB.
+      - JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=75
         -Xss2M
         -XX:InitialCodeCacheSize=128m
         -XX:ReservedCodeCacheSize=128m
         -XX:+PreserveFramePointer
-        -XX:+UseZGC
         -Xlog:gc:stdout:time
+    mem_limit: 768m
     ports:
       - "18080:18080"
     depends_on:

@@ -14,8 +14,10 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.boundary.JournalResource
 import pl.ciruk.filmbag.request.Journal
 import pl.ciruk.filmbag.request.ReplayResult
+import pl.ciruk.filmbag.request.RequestProcessor
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
 import redis.clients.jedis.RedisClient
@@ -27,6 +29,8 @@ import redis.clients.jedis.params.XAddParams
 @Testcontainers
 class JournalIntegrationTest(
     @Autowired val journal: Journal,
+    @Autowired val journalResource: JournalResource,
+    @Autowired val requestProcessor: RequestProcessor,
     @Autowired val redisClient: RedisClient
 ) {
     private val replayedFilms = mutableListOf<List<FilmRequest>>()
@@ -96,6 +100,24 @@ class JournalIntegrationTest(
         assertThat(replayedFilms).containsExactly(listOf(filmRequest))
         assertThat(result.replayed).isEqualTo(1)
         assertThat(result.failed).hasSize(1)
+    }
+
+    @Test
+    fun `should record every stored film in a snapshot`() {
+        val filmRequests = List(3) { testOtherFilmRequest(year = 2000 + it) }
+        requestProcessor.storeAll(filmRequests)
+
+        journalResource.snapshot()
+        journal.replay { replayedFilms += it }
+
+        assertThat(replayedFilms.flatten()).containsExactlyInAnyOrderElementsOf(filmRequests)
+    }
+
+    @Test
+    fun `should record nothing in a snapshot of an empty database`() {
+        journalResource.snapshot()
+
+        assertThat(journal.replay { replayedFilms += it }.replayed).isZero()
     }
 
     companion object {
