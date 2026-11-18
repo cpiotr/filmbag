@@ -1,32 +1,32 @@
 package pl.ciruk.filmbag.request
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyList
 import org.mockito.Mockito.doAnswer
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import pl.ciruk.filmbag.FilmBagApplication
+import pl.ciruk.filmbag.IntegrationTest
+import pl.ciruk.filmbag.TestData
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.identityHashOf
-import pl.ciruk.filmbag.integration.KMariaDbContainer
-import pl.ciruk.filmbag.integration.TestConfiguration
 import pl.ciruk.filmbag.testOtherFilmRequest
-import java.sql.DriverManager
+import javax.sql.DataSource
 
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.NONE,
-    classes = [FilmBagApplication::class, TestConfiguration::class]
-)
-@Testcontainers
-class RequestProcessorRetryTest(@Autowired val requestProcessor: RequestProcessor) {
+@IntegrationTest
+class RequestProcessorRetryTest(
+    @Autowired val requestProcessor: RequestProcessor,
+    @Autowired val dataSource: DataSource,
+    @Autowired val testData: TestData
+) {
     @MockitoSpyBean
     lateinit var filmService: FilmService
+
+    @BeforeEach
+    fun deleteAllData() {
+        testData.deleteAll()
+    }
 
     @Test
     fun `should update a film that another request stored after this one looked for it`() {
@@ -45,7 +45,8 @@ class RequestProcessorRetryTest(@Autowired val requestProcessor: RequestProcesso
     }
 
     private fun insertFilmFromAnotherConnection(identityHash: String) {
-        DriverManager.getConnection(mariaDb.jdbcUrl, mariaDb.username, mariaDb.password).use { connection ->
+        // A connection of its own, outside the transaction of the request under test
+        dataSource.connection.use { connection ->
             connection.createStatement().use {
                 it.executeUpdate(
                     "INSERT INTO film (id, title, year, link, score, identity_hash) " +
@@ -56,7 +57,7 @@ class RequestProcessorRetryTest(@Autowired val requestProcessor: RequestProcesso
     }
 
     private fun query(sql: String): List<Long> =
-        DriverManager.getConnection(mariaDb.jdbcUrl, mariaDb.username, mariaDb.password).use { connection ->
+        dataSource.connection.use { connection ->
             connection.createStatement().use { statement ->
                 val rows = statement.executeQuery(sql)
                 generateSequence { if (rows.next()) rows.getLong(1) else null }.toList()
@@ -65,16 +66,5 @@ class RequestProcessorRetryTest(@Autowired val requestProcessor: RequestProcesso
 
     companion object {
         const val STORED_FILM_ID = 1_000_000L
-
-        @Container
-        val mariaDb = KMariaDbContainer()
-            .withUsername("root")
-            .withPassword("")!!
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun databaseProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
-        }
     }
 }

@@ -2,9 +2,16 @@
 Bag of films
 
 ## Building
+Needs JDK 25 and Docker, which the tests use to run MariaDB and Redis:
 ```
 ./gradlew clean build
 ```
+
+To run the application locally against MariaDB and Redis in containers, on port 18080:
+```
+./gradlew bootTestRun
+```
+The password of user `user` is printed at startup (`Using generated security password`).
 
 ## Running
 The API uses HTTP Basic authentication. Set its password (and optionally the user, `filmbag` by default) and the

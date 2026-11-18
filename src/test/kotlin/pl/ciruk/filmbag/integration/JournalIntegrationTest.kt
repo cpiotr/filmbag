@@ -1,18 +1,11 @@
 package pl.ciruk.filmbag.integration
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.annotation.DirtiesContext
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.test.context.junit.jupiter.SpringExtension
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import pl.ciruk.filmbag.FilmBagApplication
+import pl.ciruk.filmbag.IntegrationTest
+import pl.ciruk.filmbag.TestData
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.JournalResource
 import pl.ciruk.filmbag.request.Journal
@@ -23,21 +16,19 @@ import pl.ciruk.filmbag.testOtherFilmRequest
 import redis.clients.jedis.RedisClient
 import redis.clients.jedis.params.XAddParams
 
-@ExtendWith(SpringExtension::class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@SpringBootTest(classes = [FilmBagApplication::class])
-@Testcontainers
+@IntegrationTest
 class JournalIntegrationTest(
     @Autowired val journal: Journal,
     @Autowired val journalResource: JournalResource,
     @Autowired val requestProcessor: RequestProcessor,
-    @Autowired val redisClient: RedisClient
+    @Autowired val redisClient: RedisClient,
+    @Autowired val testData: TestData
 ) {
     private val replayedFilms = mutableListOf<List<FilmRequest>>()
 
-    @AfterEach
-    fun deleteJournal() {
-        journal.deleteAll()
+    @BeforeEach
+    fun deleteAllData() {
+        testData.deleteAll()
     }
 
     @Test
@@ -118,24 +109,5 @@ class JournalIntegrationTest(
         journalResource.snapshot()
 
         assertThat(journal.replay { replayedFilms += it }.replayed).isZero()
-    }
-
-    companion object {
-        @Container
-        val redis = KGenericContainer("redis:8.4-alpine")
-            .withExposedPorts(6379)!!
-
-        @Container
-        val mariaDb = KMariaDbContainer()
-            .withUsername("root")
-            .withPassword("")!!
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun properties(registry: DynamicPropertyRegistry) {
-            registry.add("redis.host") { redis.host }
-            registry.add("redis.port") { redis.firstMappedPort }
-            registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
-        }
     }
 }

@@ -6,7 +6,7 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Test
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import pl.ciruk.filmbag.integration.KMariaDbContainer
+import org.testcontainers.mariadb.MariaDBContainer
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -85,8 +85,6 @@ class FilmIdentityMigrationTest {
 
     companion object {
         @Container
-        val mariaDb = KMariaDbContainer()
-            .withUsername("root")
-            .withPassword("")!!
+        val mariaDb = MariaDBContainer("mariadb:11.4")
     }
 }

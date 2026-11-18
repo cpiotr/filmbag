@@ -2,51 +2,35 @@ package pl.ciruk.filmbag.integration
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.Mockito.mock
+import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import pl.ciruk.filmbag.IntegrationTest
+import pl.ciruk.filmbag.TestData
 import org.springframework.boot.resttestclient.TestRestTemplate
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.test.annotation.DirtiesContext
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.test.context.junit.jupiter.SpringExtension
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import pl.ciruk.filmbag.FilmBagApplication
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.ScoreRequest
-import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.film.ScoreType
-import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.testFilmRequest
 import pl.ciruk.filmbag.testOtherFilmRequest
 import pl.ciruk.filmbag.testScoreRequest
-import redis.clients.jedis.RedisClient
 import java.util.UUID
 
-@ExtendWith(SpringExtension::class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    classes = [FilmBagApplication::class, TestConfiguration::class]
-)
-@Testcontainers
-@AutoConfigureTestRestTemplate
+@IntegrationTest
 class RequestProcessorIntegrationTest(
     @Autowired val restTemplate: TestRestTemplate,
     @Autowired val genreService: GenreService,
-    @Autowired val filService: FilmService
+    @Autowired val testData: TestData
 ) {
+
+    @BeforeEach
+    fun deleteAllData() {
+        testData.deleteAll()
+    }
 
     @Test
     fun `should get created films`() {
@@ -54,9 +38,7 @@ class RequestProcessorIntegrationTest(
         val otherFilmRequest = testOtherFilmRequest()
 
         executePutRequest(filmRequest, otherFilmRequest)
-        val find = filService.find()
         val arrayOfFilmRequests = executeGetRequest()
-
 
         assertThat(arrayOfFilmRequests).containsOnly(filmRequest, otherFilmRequest)
     }
@@ -318,33 +300,5 @@ class RequestProcessorIntegrationTest(
         restTemplate
             .withBasicAuth("user", "password")
             .put("/resources/films", filmRequests)
-    }
-
-    companion object {
-        @Container
-        val mariaDb = KMariaDbContainer()
-            .withUsername("root")
-            .withPassword("")!!
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun databaseProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { mariaDb.jdbcUrl }
-        }
-    }
-}
-
-@Configuration
-class TestConfiguration {
-    @Bean
-    @Primary
-    fun testDataLoader(): DataLoader {
-        return mock(DataLoader::class.java)
-    }
-
-    @Bean
-    @Primary
-    fun testRedisClient(): RedisClient {
-        return mock(RedisClient::class.java)
     }
 }

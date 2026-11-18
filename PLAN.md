@@ -293,7 +293,25 @@ Decided 2026-11-18:
   - **Measured:** today 822 statements and about 2 s for 20.5k films.
   - **Also fixes:** offset paging sorted on non-unique `created` can skip or repeat films.
 
-### 6. [ ] Test setup in Boot's current style (Major)
+### 6. [x] Test setup in Boot's current style (Major)
+> **Done 2026-11-18.**
+> - **Shared setup:** `@IntegrationTest` (meta-annotation) combines `@SpringBootTest(RANDOM_PORT)`,
+>   `TestcontainersConfiguration` (`@ServiceConnection` MariaDB plus a Redis container, wired through
+>   `DynamicPropertyRegistrar`) and the `test` profile. It also imports `TestData`, which deletes all data, after
+>   waiting for background journal writes.
+> - **Removed:**
+>   - the `@Primary` mocks of `DataLoader` and `RedisClient`, now unnecessary with a real Redis;
+>   - `@DirtiesContext`, `CleanDatabaseConfiguration` and the per-class containers;
+>   - `FilmBagApplicationTest`, whose `getBean != null` could not fail.
+> - **Config:** `application-test.properties` only overrides; the main properties now load in tests. The app class
+>   is a plain `@SpringBootApplication`. Added `spring-boot-testcontainers`.
+> - **Local runs:** `./gradlew bootTestRun` (`TestFilmBagApplication`) runs the app against containers; verified
+>   healthy.
+> - **Result:** 61 tests, 2 Spring contexts (shared, plus the retry test's spy) instead of one per test method;
+>   the build takes 23 s instead of 47 s.
+> - **Moved to step 10:** end-to-end tests of `/import` and `/journal/*` over HTTP, because step 10 rewrites
+>   those endpoints and their contract. Snapshot and replay are already covered at the bean level.
+
 - **Files:** all of `src/test`, `FilmBagApplication.kt:6-11`, `src/test/resources/application.properties`
 - **Problems:**
   - **Context restarts:** `@DirtiesContext(AFTER_EACH_TEST_METHOD)` in four classes, five hand-rolled containers,

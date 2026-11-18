@@ -58,6 +58,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testImplementation("org.springframework.boot:spring-boot-resttestclient")
     testImplementation("org.springframework.boot:spring-boot-restclient")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.testcontainers:testcontainers-mariadb")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
