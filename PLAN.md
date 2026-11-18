@@ -484,7 +484,19 @@ Decided 2026-11-18:
 - **Async import:** replace `AsyncResponse` and `ConnectionCallback`. It is unclear whether that callback ever
   fires, since the response is only written at the end.
 
-### 11. [ ] Faster startup (Minor, measured)
+### 11. [x] Faster startup (Minor, measured)
+> **Done 2026-11-18.**
+> - **Image:** the build extracts a plain jar plus `lib/` (still layered). The runtime stage trains a JDK AOT
+>   cache with one startup (`-XX:AOTCacheOutput`, `spring.context.exit=onRefresh`), and the entrypoint uses
+>   `-XX:AOTCache=app.aot`.
+> - **Training without a database:** Flyway is off, `ddl-auto=none`,
+>   `hibernate.boot.allow_jdbc_metadata_access=false`, and the MariaDB dialect is set explicitly.
+> - **Measured** to "Started", 3 runs each, real MariaDB and Redis: **2.84 s → 1.19 s**. The baseline was already
+>   below the reviewer's 3.8 s, now that Jersey is gone.
+> - **Under the compose settings** (Serial GC, 768 MiB, code cache flags): the cache opens and startup takes
+>   1.27 s.
+> - **Cost:** the image grows from 431 MB to 593 MB (the cache is 131 MB), and the cache layer changes with every
+>   build.
 - **Change:** extract with `--layers` but without `--launcher`, train a JDK 25 AOT cache in the build stage
   (`-XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh`), and run
   `java -XX:AOTCache=app.aot -jar filmbag.jar`.
