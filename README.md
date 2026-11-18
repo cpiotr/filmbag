@@ -7,13 +7,20 @@ Bag of films
 ```
 
 ## Running
-The API uses HTTP Basic authentication. Set the password (and optionally the user, `filmbag` by default) before starting:
+The API uses HTTP Basic authentication. Set its password (and optionally the user, `filmbag` by default) and the
+database password before starting. Moving an install that was started with an older `docker-compose.yml`? Follow
+[Moving an existing install](#moving-an-existing-install) first.
 ```
 export FILMBAG_PASSWORD=...
-docker-compose build
-docker-compose up
+export DB_PASSWORD=...
+docker compose build
+docker compose up
 curl -u "filmbag:$FILMBAG_PASSWORD" http://localhost:18080/resources/films
 ```
+
+The database and the journal keep their data in the named volumes `filmbag_db-data` and `filmbag_journal-data`,
+which survive `docker compose down`. The database port is not published; use
+`docker compose exec db sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" db'` for a SQL shell.
 
 The application applies database migrations itself at startup. Health checks need no credentials:
 `http://localhost:18080/resources/actuator/health` (also `/liveness` and `/readiness`).
@@ -21,9 +28,66 @@ The application applies database migrations itself at startup. Health checks nee
 The image is configured with Spring environment variables (for example `SPRING_DATASOURCE_URL`, `REDIS_HOST`,
 `EXTERNAL_PROVIDER_FILMREQUEST_URL`) and JVM options in `JDK_JAVA_OPTIONS`; see `docker-compose.yml`.
 
-## Upgrading the database
+## Backing up
+```
+docker compose exec -T db sh -c 'mariadb-dump -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" --single-transaction db' > filmbag-backup.sql
+```
+
 `docker-compose.yml` runs MariaDB 11.4 with `MARIADB_AUTO_UPGRADE=1`, so a data directory created by an older
-MariaDB (such as 10.4) is upgraded on first start. Back up the database before the first start on a new version:
-```
-docker-compose exec db mysqldump -uroot --single-transaction db > filmbag-backup.sql
-```
+MariaDB (such as 10.4) is upgraded on first start. Take a backup before starting a new MariaDB version.
+
+## Moving an existing install
+Older versions of `docker-compose.yml` kept the data in anonymous volumes, connected as a passwordless `root` and
+published the database port. Moving such an install to the current file, with the old version still running:
+
+1. Back up the database, and note the volumes that hold the data:
+   ```
+   docker compose exec -T db mariadb-dump -uroot --single-transaction db > filmbag-backup.sql
+   volume_of() { docker inspect -f "{{range .Mounts}}{{if eq .Destination \"$2\"}}{{.Name}}{{end}}{{end}}" "$1"; }
+   old_db=$(volume_of filmbag-db-1 /var/lib/mysql)
+   old_journal=$(volume_of filmbag-journal-1 /data)
+   echo "$old_db $old_journal"
+   ```
+   On MariaDB 10.x use `mysqldump` instead of `mariadb-dump`. Check that both volume names are printed.
+2. Stop it, update the files, and create the new volumes without starting anything:
+   ```
+   docker compose stop
+   git pull
+   export FILMBAG_PASSWORD=... DB_PASSWORD=...
+   docker compose create
+   ```
+3. Copy the data into the new volumes:
+   ```
+   docker run --rm -v "$old_db":/from -v filmbag_db-data:/to alpine cp -a /from/. /to/
+   docker run --rm -v "$old_journal":/from -v filmbag_journal-data:/to alpine cp -a /from/. /to/
+   ```
+4. Convert the journal to append-only files. Redis started with `--appendonly yes` ignores an existing
+   `dump.rdb`, so load it once without that option and let Redis write the append-only files:
+   ```
+   docker run -d --name journal-convert -v filmbag_journal-data:/data redis:8.4-alpine
+   sleep 2
+   docker exec journal-convert redis-cli config set appendonly yes
+   sleep 5   # until `redis-cli info persistence` shows aof_rewrite_in_progress:0
+   docker exec journal-convert redis-cli shutdown
+   docker rm journal-convert
+   ```
+5. Create the application's database user and replace the empty root passwords. The `MARIADB_*` settings only
+   apply to an empty data directory, so do it by hand:
+   ```
+   docker compose up -d --wait db
+   docker compose exec db sh -c '
+     root_password=$(head -c 32 /dev/urandom | base64 | tr -dc A-Za-z0-9)
+     mariadb -uroot <<SQL
+   CREATE USER IF NOT EXISTS \`$MARIADB_USER\`@\`%\` IDENTIFIED BY "$MARIADB_PASSWORD";
+   GRANT ALL PRIVILEGES ON db.* TO \`$MARIADB_USER\`@\`%\`;
+   ALTER USER IF EXISTS root@localhost, root@\`%\` IDENTIFIED BY "$root_password";
+   SQL'
+   ```
+   Root then has a random password nobody knows, as in a fresh install.
+6. Start everything, and check that the films and the journal are there:
+   ```
+   docker compose up -d
+   curl -u "filmbag:$FILMBAG_PASSWORD" http://localhost:18080/resources/films
+   docker compose exec journal redis-cli dbsize
+   ```
+   Once this works, delete the old volumes with `docker volume rm "$old_db" "$old_journal"`.

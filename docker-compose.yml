@@ -2,10 +2,14 @@ services:
   db:
     image: mariadb:11.4
     volumes:
+      - db-data:/var/lib/mysql
       - ./database/create-db.sql:/docker-entrypoint-initdb.d/V000__create_db.sql:ro
+    # No published port: the application reaches the database over the compose network
     environment:
-      - MYSQL_ALLOW_EMPTY_PASSWORD=true
-      - MYSQL_DATABASE=db
+      - MARIADB_DATABASE=db
+      - MARIADB_USER=filmbag
+      - MARIADB_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD to the database password}
+      - MARIADB_RANDOM_ROOT_PASSWORD=1
       # Upgrades a data directory created by an older MariaDB on first start
       - MARIADB_AUTO_UPGRADE=1
     healthcheck:
@@ -13,10 +17,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
-    ports:
-      - "3306:3306"
   journal:
     image: redis:8.4-alpine
+    # The journal is the backup of the database, so write every change to disk
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - journal-data:/data
   filmbag:
     build:
       context: .
@@ -24,6 +30,8 @@ services:
         - APP_VERSION=0.0.1
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mariadb://db:3306/db
+      - SPRING_DATASOURCE_USERNAME=filmbag
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD to the database password}
       - REDIS_HOST=journal
       - EXTERNAL_PROVIDER_FILMREQUEST_URL=http://192.168.122.1:8080/resources/suggestions
       - EXTERNAL_PROVIDER_FILMREQUEST_LIMIT=50
@@ -45,3 +53,7 @@ services:
         condition: service_healthy
       journal:
         condition: service_started
+
+volumes:
+  db-data:
+  journal-data:

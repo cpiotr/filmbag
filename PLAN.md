@@ -61,7 +61,23 @@ Decided 2026-11-18:
 
 ## Steps
 
-### 1. [ ] Make the compose deployment safe (Blocker)
+### 1. [x] Make the compose deployment safe (Blocker)
+> **Done 2026-11-18.**
+> - **Port:** the database port is no longer published. Root over TCP gets "Access denied"; root through
+>   `compose exec` still works via `unix_socket`, which needs container access anyway.
+> - **Volumes and Redis:** named volumes; Redis runs with `--appendonly yes`.
+> - **Accounts:** the app connects as `filmbag`; root gets a random password.
+> - **README:** new backup command, plus "Moving an existing install".
+> - **Verified in a sandbox:**
+>   - An install started from `master`'s compose was moved by following the README; the film and the journal
+>     entry survived.
+>   - Data survives `down`/`up`.
+>   - A fresh install applies all 14 migrations as `filmbag`.
+> - **Found while testing:** Redis started with `--appendonly yes` ignores an existing `dump.rdb` and starts
+>   empty, so the README converts the journal first.
+> - **Defaults:** `application.properties` still defaults to `root`; local defaults are step 7.
+> - **Not run:** the move on the real install.
+
 - **Files:** `docker-compose.yml`, `README.md`, `application.properties:2-3`
 - **Problems:**
   - MariaDB root has no password (`MYSQL_ALLOW_EMPTY_PASSWORD=true`) and port 3306 is published on 0.0.0.0.
