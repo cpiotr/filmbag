@@ -15,9 +15,9 @@ class FilmStore(
     private val logger = KotlinLogging.logger {}
 
     fun storeAll(films: List<FilmData>) {
-        val (validFilms, invalidFilms) = films.partition { it.missingRequiredFields().isEmpty() }
+        val (validFilms, invalidFilms) = films.partition { it.problems().isEmpty() }
         invalidFilms.forEach {
-            logger.warn { "Skipping film <${it.title}> missing ${it.missingRequiredFields().joinToString()}" }
+            logger.warn { "Skipping film <${it.title}>: ${it.problems().joinToString()}" }
         }
 
         try {

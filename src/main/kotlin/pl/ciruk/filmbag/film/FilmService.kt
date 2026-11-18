@@ -52,7 +52,7 @@ class FilmService(
             year: Range<Int> = Unbounded(),
             score: Range<BigDecimal> = Unbounded(),
             page: Int = 0,
-            pageSize: Int = 10): List<Film> {
+            pageSize: Int = 10): Slice<Film> {
         logger.info { "Find by year=$year; score=$score; page=$page; pageSize=$pageSize" }
 
         val specification = Specification.allOf(listOfNotNull(
@@ -61,8 +61,7 @@ class FilmService(
         // A slice, unlike a page, needs no count query
         return repository
                 .findBy<Film, Slice<Film>>(specification) { it.slice(PageRequest.of(page, pageSize, newestFirst)) }
-                .content
-                .withScoresAndGenres()
+                .also { it.content.withScoresAndGenres() }
     }
 
     /** Every film, newest first, a page at a time. Each page is read in its own transaction. */

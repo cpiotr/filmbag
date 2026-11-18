@@ -141,7 +141,7 @@ internal class FilmServiceTest(
     fun `should find films whose scores and genres can be read after the transaction`() {
         val films = filmService.find()
 
-        assertThat(films.flatMap { it.scores }).isNotEmpty()
-        assertThat(films.flatMap { it.genres }).isNotEmpty()
+        assertThat(films.content.flatMap { it.scores }).isNotEmpty()
+        assertThat(films.content.flatMap { it.genres }).isNotEmpty()
     }
 }

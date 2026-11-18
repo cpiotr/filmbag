@@ -1,7 +1,5 @@
 package pl.ciruk.filmbag.provider
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -13,19 +11,22 @@ import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.film.FilmData
 import pl.ciruk.filmbag.film.FilmStore
 import pl.ciruk.filmbag.journal.Journal
-import kotlin.math.max
+import tools.jackson.core.JacksonException
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
+import kotlin.math.max
 
 @Service
 class ProviderImporter(
         private val filmStore: FilmStore,
         private val journal: Journal,
         private val httpClient: OkHttpClient,
-        private val mapper: ObjectMapper,
+        private val mapper: JsonMapper,
         private val taskExecutor: TaskExecutor,
         private val provider: FilmProviderProperties) {
     private val logger = KotlinLogging.logger {}
@@ -107,14 +108,20 @@ class ProviderImporter(
                 .url(currentUrl)
                 .get()
                 .build()
-        return httpClient.newCall(request)
-                .execute()
-                .use { response -> response.parse() }
+        return try {
+            httpClient.newCall(request)
+                    .execute()
+                    .use { response -> response.parse() }
+        } catch (e: IOException) {
+            throw FilmProviderException("Cannot read films from $currentUrl: ${e.message}", e)
+        } catch (e: JacksonException) {
+            throw FilmProviderException("Film provider sent unreadable films from $currentUrl: ${e.originalMessage}", e)
+        }
     }
 
     private fun Response.parse(): List<FilmData> {
         if (!this.isSuccessful) {
-            throw IOException("Film provider returned HTTP ${this.code} for ${this.request.url}")
+            throw FilmProviderException("Film provider returned HTTP ${this.code} for ${this.request.url}")
         }
         return this.body
                 ?.parse()
@@ -127,3 +134,6 @@ class ProviderImporter(
 }
 
 class ImportAlreadyRunningException : IllegalStateException("An import is already running")
+
+/** The film provider could not be reached or answered with an error or unreadable films. */
+class FilmProviderException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

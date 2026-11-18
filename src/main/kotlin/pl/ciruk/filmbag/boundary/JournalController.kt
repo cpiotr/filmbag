@@ -1,44 +1,41 @@
 package pl.ciruk.filmbag.boundary
 
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.core.MediaType
-import jakarta.ws.rs.core.Response
-import org.springframework.stereotype.Service
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.FilmStore
 import pl.ciruk.filmbag.film.toFilmData
 import pl.ciruk.filmbag.journal.Journal
 import pl.ciruk.filmbag.journal.ReplayResult
 
-@Service
-@Path("/journal")
-class JournalResource(
+@RestController
+@RequestMapping("/resources/journal")
+class JournalController(
     private val filmStore: FilmStore,
     private val journal: Journal,
     private val filmService: FilmService
 ) {
-    @POST
-    @Path("/replay")
-    @Produces(MediaType.APPLICATION_JSON)
+    /** Stores the films of every journal entry again, oldest first. */
+    @PostMapping("/replay")
     fun replay(): ReplayResult {
         return journal.replay(filmStore::storeAll)
     }
 
-    @POST
-    @Path("/snapshot")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun snapshot(): Response {
+    /** Records every stored film in the journal. */
+    @PostMapping("/snapshot")
+    fun snapshot(): SnapshotResult {
         var entries = 0
         for (films in filmService.findAllInPages(SNAPSHOT_PAGE_SIZE)) {
             journal.record(films.map { it.toFilmData() })
             entries++
         }
-        return Response.accepted(mapOf("journalEntries" to entries)).build()
+        return SnapshotResult(entries)
     }
 
     companion object {
         private const val SNAPSHOT_PAGE_SIZE = 100
     }
 }
+
+data class SnapshotResult(val journalEntries: Int)

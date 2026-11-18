@@ -45,6 +45,33 @@ The image is configured with environment variables; see `docker-compose.yml` and
 
 With compose, set `FILM_PROVIDER_URL` in an `.env` file next to `docker-compose.yml` to change the provider.
 
+## API
+Every endpoint except the health checks needs HTTP Basic credentials. Errors are Problem Details
+(`application/problem+json`, RFC 9457).
+
+| Request | What it does | Answer |
+|---|---|---|
+| `GET /resources/films` | Films, newest first. Filters: `yearFrom`, `yearTo`, `scoreFrom`, `scoreTo`, all inclusive. `page` starts at 0; `pageSize` is 1 to 100, 10 by default | `{"items": [films], "next": URL of the next page or null}` |
+| `POST /resources/films` | Stores new films and updates the score and scores of known ones (same title, year and genres). Stores nothing if any film is invalid | 204; 400 with `invalidFilms: [{"index", "problems"}]` |
+| `POST /resources/import/{offset}` | Imports from the film provider, starting at page `offset + 1`, and answers when done | `{"lastImportedOffset", "nextOffset"}`; 409 while another import runs; 502 if the provider fails |
+| `POST /resources/import/cancel` | Stops the running import after its current page | 204 |
+| `POST /resources/journal/replay` | Stores the films of every journal entry again | `{"replayed", "failed": [entry ids]}` |
+| `POST /resources/journal/snapshot` | Records every stored film in the journal | `{"journalEntries"}` |
+| `GET /resources/actuator/health` | Health, also `/liveness` and `/readiness`; no credentials | `{"status": "UP"}` |
+
+A film:
+```json
+{
+  "title": "Heat", "year": 1995, "link": "https://films/heat", "score": 0.83,
+  "plot": "...", "poster": "https://posters/heat.jpg", "genres": ["Crime", "Drama"],
+  "scores": [{"grade": 0.8, "quantity": 1200, "type": "CRITIC", "url": "https://critics/heat"}],
+  "created": "2026-11-18T20:21:52.225583Z"
+}
+```
+`title`, `year`, `link` and `score` are required. `created` defaults to the time the film is received, and
+`numberOfScores` is only set in answers. A score `type` is `AMATEUR`, `CRITIC` or `UNKNOWN`; other values are stored
+as `UNKNOWN`. Plots longer than 512 characters are shortened.
+
 ## Backing up
 ```
 docker compose exec -T db sh -c 'mariadb-dump -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" --single-transaction db' > filmbag-backup.sql

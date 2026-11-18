@@ -13,9 +13,14 @@ class TestData(
 ) {
     /** Deletes all films, genres and journal entries, once background work such as journal writes has finished. */
     fun deleteAll() {
+        deleteFilms()
+        journal.deleteAll()
+    }
+
+    /** Deletes all films and genres but keeps the journal, once background work has finished. */
+    fun deleteFilms() {
         awaitBackgroundWork()
         jdbcTemplate.batchUpdate("DELETE FROM film_genres", "DELETE FROM score", "DELETE FROM film", "DELETE FROM genre")
-        journal.deleteAll()
     }
 
     private fun awaitBackgroundWork() {

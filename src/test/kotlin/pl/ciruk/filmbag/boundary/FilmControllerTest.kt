@@ -7,19 +7,20 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import pl.ciruk.filmbag.journal.Journal
+import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.FilmStore
 import pl.ciruk.filmbag.testFilm
 
-class FilmWriteResourceTest {
+class FilmControllerTest {
     private val filmStore = mock(FilmStore::class.java)
     private val journal = mock(Journal::class.java)
-    private val resource = FilmWriteResource(filmStore, journal)
+    private val controller = FilmController(mock(FilmService::class.java), filmStore, journal)
 
     @Test
     fun `should record stored films`() {
         val films = listOf(testFilm())
 
-        resource.storeOrUpdateScores(films)
+        controller.store(films)
 
         verify(journal).recordAsync(films)
     }
@@ -29,7 +30,7 @@ class FilmWriteResourceTest {
         val films = listOf(testFilm())
         doThrow(IllegalStateException("Storing failed")).`when`(filmStore).storeAll(films)
 
-        assertThatThrownBy { resource.storeOrUpdateScores(films) }.hasMessage("Storing failed")
+        assertThatThrownBy { controller.store(films) }.hasMessage("Storing failed")
 
         verifyNoInteractions(journal)
     }

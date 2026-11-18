@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import pl.ciruk.filmbag.IntegrationTest
 import pl.ciruk.filmbag.TestData
 import pl.ciruk.filmbag.film.FilmData
-import pl.ciruk.filmbag.boundary.JournalResource
+import pl.ciruk.filmbag.boundary.JournalController
 import pl.ciruk.filmbag.film.FilmStore
 import pl.ciruk.filmbag.testFilm
 import pl.ciruk.filmbag.testOtherFilm
@@ -17,7 +17,7 @@ import redis.clients.jedis.params.XAddParams
 @IntegrationTest
 class JournalIntegrationTest(
     @Autowired val journal: Journal,
-    @Autowired val journalResource: JournalResource,
+    @Autowired val journalController: JournalController,
     @Autowired val filmStore: FilmStore,
     @Autowired val redisClient: RedisClient,
     @Autowired val testData: TestData
@@ -96,7 +96,7 @@ class JournalIntegrationTest(
         val filmRequests = List(3) { testOtherFilm(year = 2000 + it) }
         filmStore.storeAll(filmRequests)
 
-        journalResource.snapshot()
+        journalController.snapshot()
         journal.replay { replayedFilms += it }
 
         assertThat(replayedFilms.flatten()).containsExactlyInAnyOrderElementsOf(filmRequests)
@@ -104,7 +104,7 @@ class JournalIntegrationTest(
 
     @Test
     fun `should record nothing in a snapshot of an empty database`() {
-        journalResource.snapshot()
+        journalController.snapshot()
 
         assertThat(journal.replay { replayedFilms += it }.replayed).isZero()
     }

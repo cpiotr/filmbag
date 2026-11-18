@@ -202,7 +202,14 @@ Decided 2026-11-18:
   - [Spring transaction-bound events](https://docs.spring.io/spring-framework/reference/data-access/transaction/event.html).
   - [Redis Streams](https://redis.io/docs/latest/develop/data-types/streams/).
 
-### 4. [ ] Return client errors as 4xx with useful bodies (Major; after D1)
+### 4. [x] Return client errors as 4xx with useful bodies (Major; after D1)
+> **Done 2026-11-18, together with step 10; see the note there.**
+> - **Validation:** `FilmData.problems()` checks the required fields, the lengths of title, link, poster, genres
+>   and score URLs, and the range of scores and grades, which must fit `DECIMAL(24,18)`.
+> - **POST:** an invalid film gives 400 with `invalidFilms: [{index, problems}]` and stores nothing.
+> - **Import and replay:** they skip invalid films and log a warning.
+> - **Malformed filters:** 400 Problem Details.
+> - **README:** the API section documents the endpoints and the film JSON.
 - **Files:** `boundary/DataModel.kt:21-26`, `boundary/FilmResource.kt`, `boundary/ImportResource.kt`,
   `boundary/JournalResource.kt`, `request/RequestProcessor.kt:19-22`
 - **Problems:**
@@ -442,7 +449,33 @@ Decided 2026-11-18:
   JDK 25 + Docker as prerequisites in the README.
 - **CI:** build the Docker image (no push), so the README's compose path is tested.
 
-### 10. [ ] Jersey → Spring MVC (if D1 = yes)
+### 10. [x] Jersey → Spring MVC (if D1 = yes)
+> **Done 2026-11-18, with step 4.**
+> - **Controllers:** `FilmController`, `ImportController` and `JournalController` replace the Jersey resources.
+>   One `ProblemDetailsHandler` (`@RestControllerAdvice`, extends `ResponseEntityExceptionHandler`) maps:
+>   - invalid films → 400;
+>   - a running import → 409;
+>   - `FilmProviderException` (HTTP error, connection failure, unreadable JSON) → 502;
+>   - anything else → 500 without internals.
+> - **Paths:** they keep the `/resources` prefix, and `management.endpoints.web.base-path=/resources/actuator`,
+>   so the health URL, security rule and Dockerfile `HEALTHCHECK` are unchanged.
+> - **D2 contract:**
+>   - `GET` returns `{items, next}`, where `next` is set from `Slice.hasNext()`;
+>   - `PUT` became `POST /resources/films`;
+>   - import returns `{lastImportedOffset, nextOffset}`, and replay and snapshot return 200 with a body.
+> - **Import:** returns a `CompletableFuture`. `spring.mvc.async.request-timeout=5m`, because the container's
+>   default is 30 s. Cancel on disconnect (`ConnectionCallback`) was dropped; `POST /import/cancel` remains.
+> - **Dependencies:** removed `spring-boot-starter-jersey`, `spring-boot-jackson2` and Jackson 2. Everything uses
+>   Jackson 3, including `ProviderImporter`.
+> - **New tests:**
+>   - `ImportApiIntegrationTest`, with a fake provider: import, 502, a bad offset, cancel;
+>   - HTTP tests of replay and snapshot, Problem Details, `next` links and malformed filters.
+> - **Verified:** 71 tests pass, with 3 Spring contexts. Smoke test of the image under compose: POST, GET,
+>   Problem Details, a 502 import, a healthy container.
+> - **Not done:**
+>   - OkHttp → `RestClient`; it isn't needed, but it would drop a dependency.
+>   - The test profile still keeps date offsets (`ADJUST_DATES_TO_CONTEXT_TIME_ZONE=false`) while production
+>     normalises them to UTC. This ties in with the open time-zone question.
 - **Change:** `@RestController`s with `ResponseStatusException` and `spring.mvc.problemdetails.enabled=true`.
 - **Removals:** drop `spring-boot-starter-jersey`, `spring-boot-jackson2` and `Jersey.kt`. Move `DataLoader` to
   Jackson 3, which it can do even without D1.

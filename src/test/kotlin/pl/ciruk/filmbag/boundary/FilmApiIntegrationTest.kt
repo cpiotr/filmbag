@@ -7,9 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import pl.ciruk.filmbag.IntegrationTest
 import pl.ciruk.filmbag.TestData
 import org.springframework.boot.resttestclient.TestRestTemplate
-import org.springframework.http.HttpEntity
-import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import pl.ciruk.filmbag.film.FilmData
 import pl.ciruk.filmbag.film.ScoreData
@@ -37,8 +36,8 @@ class FilmApiIntegrationTest(
         val filmRequest = testFilm()
         val otherFilmRequest = testOtherFilm()
 
-        executePutRequest(filmRequest, otherFilmRequest)
-        val arrayOfFilmRequests = executeGetRequest()
+        postFilms(filmRequest, otherFilmRequest)
+        val arrayOfFilmRequests = getFilms()
 
         assertThat(arrayOfFilmRequests).containsOnly(filmRequest, otherFilmRequest)
     }
@@ -50,8 +49,8 @@ class FilmApiIntegrationTest(
         val yetAnotherFilmRequest = testFilm(year = 2021)
         val nextFilmRequest = testFilm(year = 2030)
 
-        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
-        val arrayOfFilmRequests = executeGetRequest(yearFrom = 2019, yearTo = 2025)
+        postFilms(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+        val arrayOfFilmRequests = getFilms(yearFrom = 2019, yearTo = 2025)
 
         assertThat(arrayOfFilmRequests).containsOnly(filmRequest, yetAnotherFilmRequest)
     }
@@ -63,8 +62,8 @@ class FilmApiIntegrationTest(
         val yetAnotherFilmRequest = testFilm(score = 0.7)
         val nextFilmRequest = testFilm(score = 0.8)
 
-        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
-        val arrayOfFilmRequests = executeGetRequest(scoreFrom = 0.625, scoreTo = 0.75)
+        postFilms(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+        val arrayOfFilmRequests = getFilms(scoreFrom = 0.625, scoreTo = 0.75)
 
         assertThat(arrayOfFilmRequests).containsOnly(otherFilmRequest, yetAnotherFilmRequest)
     }
@@ -76,8 +75,8 @@ class FilmApiIntegrationTest(
         val yetAnotherFilmRequest = testFilm(score = 0.7, year = 2015)
         val nextFilmRequest = testFilm(score = 0.8, year = 2020)
 
-        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
-        val arrayOfFilmRequests = executeGetRequest(scoreFrom = 0.625, scoreTo = 0.75, yearFrom = 2013)
+        postFilms(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+        val arrayOfFilmRequests = getFilms(scoreFrom = 0.625, scoreTo = 0.75, yearFrom = 2013)
 
         assertThat(arrayOfFilmRequests).containsOnly(yetAnotherFilmRequest)
     }
@@ -86,10 +85,10 @@ class FilmApiIntegrationTest(
     fun `should not store single film twice`() {
         val filmRequest = testFilm()
 
-        executePutRequest(filmRequest)
-        executePutRequest(filmRequest)
+        postFilms(filmRequest)
+        postFilms(filmRequest)
 
-        val arrayOfFilmRequests = executeGetRequest()
+        val arrayOfFilmRequests = getFilms()
         assertThat(arrayOfFilmRequests)
             .hasSize(1)
             .containsOnly(filmRequest)
@@ -100,16 +99,16 @@ class FilmApiIntegrationTest(
         val filmRequest = testOtherFilm(score = 0.5)
         val laterCopy = filmRequest.copy(score = 0.6, scores = setOf(testScore(0.6, 20)))
 
-        val response = exchangePutRequest(filmRequest, laterCopy)
+        val response = postFilms(filmRequest, laterCopy)
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
-        val storedFilm = executeGetRequest().single()
+        val storedFilm = getFilms().single()
         assertThat(storedFilm.score).isEqualTo(0.6)
         assertThat(storedFilm.scores).isEqualTo(filmRequest.scores + laterCopy.scores)
     }
 
     @Test
-    fun `should update scores when film request is put twice`() {
+    fun `should update scores when a film is posted twice`() {
         val filmRequest = testFilm()
         val updatedFilmRequest = filmRequest.copy(
             score = filmRequest.score?.plus(1.0),
@@ -117,10 +116,10 @@ class FilmApiIntegrationTest(
             numberOfScores = filmRequest.numberOfScores + 1
         )
 
-        executePutRequest(filmRequest)
-        executePutRequest(updatedFilmRequest)
+        postFilms(filmRequest)
+        postFilms(updatedFilmRequest)
 
-        val arrayOfFilmRequests = executeGetRequest()
+        val arrayOfFilmRequests = getFilms()
         assertThat(arrayOfFilmRequests)
             .hasSize(1)
             .containsOnly(updatedFilmRequest)
@@ -129,12 +128,17 @@ class FilmApiIntegrationTest(
     @Test
     fun `should get paginated films sorted by creation time in descending order`() {
         val filmRequest = testFilm()
-        executePutRequest(filmRequest)
+        postFilms(filmRequest)
         val otherFilmRequest = testOtherFilm()
-        executePutRequest(otherFilmRequest)
+        postFilms(otherFilmRequest)
 
-        assertThat(executeGetRequest(page = 0, pageSize = 1)).containsOnly(otherFilmRequest)
-        assertThat(executeGetRequest(page = 1, pageSize = 1)).containsOnly(filmRequest)
+        val firstPage = getPage("/resources/films?page=0&pageSize=1")
+        val secondPage = getPage(checkNotNull(firstPage.next))
+
+        assertThat(firstPage.items).containsOnly(otherFilmRequest)
+        assertThat(firstPage.next).contains("/resources/films?").contains("page=1").contains("pageSize=1")
+        assertThat(secondPage.items).containsOnly(filmRequest)
+        assertThat(secondPage.next).isNull()
     }
 
     @Test
@@ -147,7 +151,7 @@ class FilmApiIntegrationTest(
         val yetAnotherFilmRequest = testFilm(year = 2021)
         val nextFilmRequest = testFilm(year = 2030)
 
-        executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
+        postFilms(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
 
         assertThat(genreService.findAll().map { it.name })
             .containsExactlyInAnyOrder("Genre1", "Genre2", "Genre3", "Genre4")
@@ -160,8 +164,8 @@ class FilmApiIntegrationTest(
 
         val filmRequest = testFilm(year = 2020)
 
-        executePutRequest(filmRequest)
-        val foundFilms = executeGetRequest(page = 0, pageSize = 1)
+        postFilms(filmRequest)
+        val foundFilms = getFilms(page = 0, pageSize = 1)
 
         val foundScoreTypes = foundFilms
             .flatMap { it.scores }
@@ -197,12 +201,47 @@ class FilmApiIntegrationTest(
     }
 
     @Test
-    fun `should reject films without required fields`() {
-        val response = exchangePutRequest(testFilm(), FilmData(title = "No year"))
+    fun `should reject films without required fields, naming them in the problem details`() {
+        val response = restTemplate
+            .withBasicAuth("user", "password")
+            .postForEntity("/resources/films", arrayOf(testFilm(), FilmData(title = "No year")), Map::class.java)
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
-        assertThat(response.body).isEqualTo("film 1 is missing year, link, score")
-        assertThat(executeGetRequest()).isEmpty()
+        assertThat(response.headers.contentType).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON)
+        assertThat(response.body!!["invalidFilms"])
+            .isEqualTo(listOf(mapOf("index" to 1, "problems" to listOf("year is missing", "link is missing", "score is missing"))))
+        assertThat(getFilms()).isEmpty()
+    }
+
+    @Test
+    fun `should reject a malformed filter as a bad request`() {
+        val response = get("/resources/films?yearFrom=199x")
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(response.headers.contentType).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON)
+    }
+
+    @Test
+    fun `should replay the journal and report the result`() {
+        val filmRequest = testOtherFilm()
+        postFilms(filmRequest)
+        testData.deleteFilms()
+
+        val response = post("/resources/journal/replay")
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(response.body).isEqualTo(mapOf("replayed" to 1, "failed" to emptyList<String>()))
+        assertThat(getFilms()).containsOnly(filmRequest)
+    }
+
+    @Test
+    fun `should record all films in a snapshot and report the number of entries`() {
+        postFilms(testFilm(), testOtherFilm())
+
+        val response = post("/resources/journal/snapshot")
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(response.body).isEqualTo(mapOf("journalEntries" to 1))
     }
 
     @Test
@@ -218,24 +257,24 @@ class FilmApiIntegrationTest(
     fun `should store score without url`() {
         val filmRequest = testOtherFilm().copy(scores = setOf(ScoreData(0.5, 100, url = null)))
 
-        val response = exchangePutRequest(filmRequest)
+        val response = postFilms(filmRequest)
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
-        assertThat(executeGetRequest()).containsOnly(filmRequest)
+        assertThat(getFilms()).containsOnly(filmRequest)
     }
 
     @Test
-    fun `should store genre after a failed request with the same new genre`() {
+    fun `should store genre after a rejected request with the same new genre`() {
         val tooLongPoster = "https://poster/" + "x".repeat(600)
         val failingFilmRequest = testFilm().copy(genres = setOf("Noir"), poster = tooLongPoster)
         val filmRequest = testOtherFilm().copy(genres = setOf("Noir"))
 
-        val failedResponse = exchangePutRequest(failingFilmRequest)
-        val response = exchangePutRequest(filmRequest)
+        val failedResponse = postFilms(failingFilmRequest)
+        val response = postFilms(filmRequest)
 
-        assertThat(failedResponse.statusCode).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+        assertThat(failedResponse.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
         assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
-        assertThat(executeGetRequest()).containsOnly(filmRequest)
+        assertThat(getFilms()).containsOnly(filmRequest)
     }
 
     @Test
@@ -245,9 +284,9 @@ class FilmApiIntegrationTest(
             ScoreData(0.5, 100, type = "AMATEUR", url = "http://critics"),
             ScoreData(0.5, 100, type = "CRITIC", url = "http://other-critics")))
 
-        exchangePutRequest(filmRequest)
+        postFilms(filmRequest)
 
-        assertThat(executeGetRequest().single().scores).isEqualTo(filmRequest.scores)
+        assertThat(getFilms().single().scores).isEqualTo(filmRequest.scores)
     }
 
     @Test
@@ -255,7 +294,7 @@ class FilmApiIntegrationTest(
         val filmRequest = testFilm().copy(genres = setOf("Drama"))
         val otherFilmRequest = testOtherFilm().copy(genres = setOf("drama"))
 
-        val response = exchangePutRequest(filmRequest, otherFilmRequest)
+        val response = postFilms(filmRequest, otherFilmRequest)
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
         assertThat(genreService.findAll().map { it.name }).containsExactlyInAnyOrder("Drama", "drama")
@@ -265,19 +304,19 @@ class FilmApiIntegrationTest(
     fun `should store titles and genres with 4-byte characters`() {
         val filmRequest = testOtherFilm().copy(title = "Popcorn 🍿 " + UUID.randomUUID(), genres = setOf("Horror 👻"))
 
-        val response = exchangePutRequest(filmRequest)
+        val response = postFilms(filmRequest)
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
-        assertThat(executeGetRequest()).containsOnly(filmRequest)
+        assertThat(getFilms()).containsOnly(filmRequest)
     }
 
-    private fun exchangePutRequest(vararg filmRequests: FilmData): ResponseEntity<String> {
+    private fun postFilms(vararg films: FilmData): ResponseEntity<String> {
         return restTemplate
             .withBasicAuth("user", "password")
-            .exchange("/resources/films", HttpMethod.PUT, HttpEntity(filmRequests), String::class.java)
+            .postForEntity("/resources/films", films, String::class.java)
     }
 
-    private fun executeGetRequest(
+    private fun getFilms(
         yearFrom: Int? = null,
         yearTo: Int? = null,
         scoreFrom: Double? = null,
@@ -289,16 +328,25 @@ class FilmApiIntegrationTest(
             .filterValues { it != null }
             .map { (name, value) -> "&$name=$value" }
             .joinToString("")
-        val url = "/resources/films?page=$page&pageSize=$pageSize$filters"
-        val films = restTemplate
-            .withBasicAuth("user", "password")
-            .getForObject(url, Array<FilmData>::class.java)
-        return checkNotNull(films) { "No response body for GET $url" }
+        return getPage("/resources/films?page=$page&pageSize=$pageSize$filters").items.toTypedArray()
     }
 
-    private fun executePutRequest(vararg filmRequests: FilmData) {
-        restTemplate
+    private fun getPage(url: String): FilmPage {
+        val page = restTemplate
             .withBasicAuth("user", "password")
-            .put("/resources/films", filmRequests)
+            .getForObject(url, FilmPage::class.java)
+        return checkNotNull(page) { "No response body for GET $url" }
+    }
+
+    private fun post(url: String): ResponseEntity<Map<*, *>> {
+        return restTemplate
+            .withBasicAuth("user", "password")
+            .postForEntity(url, null, Map::class.java)
+    }
+
+    private fun get(url: String): ResponseEntity<Map<*, *>> {
+        return restTemplate
+            .withBasicAuth("user", "password")
+            .getForEntity(url, Map::class.java)
     }
 }

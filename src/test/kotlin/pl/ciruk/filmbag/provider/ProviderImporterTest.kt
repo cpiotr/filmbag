@@ -1,6 +1,5 @@
 package pl.ciruk.filmbag.provider
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import okhttp3.OkHttpClient
@@ -17,7 +16,8 @@ import pl.ciruk.filmbag.film.FilmData
 import pl.ciruk.filmbag.film.FilmStore
 import pl.ciruk.filmbag.journal.Journal
 import pl.ciruk.filmbag.testFilm
-import java.io.IOException
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.kotlinModule
 import java.net.InetSocketAddress
 import java.net.URI
 import java.util.concurrent.CountDownLatch
@@ -167,7 +167,7 @@ class ProviderImporterTest {
         val importResult = providerImporter.importAsync()
 
         assertThatThrownBy { importResult.join() }
-            .hasCauseInstanceOf(IOException::class.java)
+            .hasCauseInstanceOf(FilmProviderException::class.java)
             .hasMessageContaining("HTTP 503")
         verifyNoInteractions(filmStore)
     }
@@ -219,7 +219,7 @@ class ProviderImporterTest {
         taskExecutor: TaskExecutor = SyncTaskExecutor()
     ): ProviderImporter {
         return ProviderImporter(
-            filmStore, journal, OkHttpClient(), jacksonObjectMapper(), taskExecutor,
+            filmStore, journal, OkHttpClient(), JsonMapper.builder().addModule(kotlinModule()).build(), taskExecutor,
             FilmProviderProperties(URI(providerUrl), filmProviderLimit))
     }
 
