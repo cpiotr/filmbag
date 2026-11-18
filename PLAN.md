@@ -103,7 +103,21 @@ Decided 2026-11-18:
     automatically mounted by a subsequent `up`".
   - [MariaDB mysqldump](https://mariadb.com/kb/en/mysqldump/): the symlink was removed from the image from 11.0.
 
-### 2. [ ] Enforce film identity and replace the startup job (Major)
+### 2. [x] Enforce film identity and replace the startup job (Major)
+> **Done 2026-11-18.**
+> - **In-batch duplicates:** `storeAll` merges them; the later copy's score wins and the scores of both are kept.
+> - **V015:** a Kotlin migration bean that fills missing hashes with `identityHashOf`, which now takes genre
+>   names.
+> - **V016:** merges films sharing a hash into the newest, moves their scores, drops equal scores, and adds
+>   `NOT NULL` + `UNIQUE u_film_identity_hash`.
+> - **Startup job:** removed.
+> - **Tests:** 54 pass, including:
+>   - `FilmIdentityMigrationTest`: seeded duplicates, including one with the hash already set;
+>   - one PUT naming a film twice.
+> - **Deferred to step 3:** the retry on a unique violation. A retry has to run outside the transaction, and
+>   transaction boundaries move there. Until then a request racing another to insert the same new film fails
+>   with 500 instead of storing a duplicate.
+
 - **Files:** `film/FilmService.kt:21-45,86-130`, new migrations, `RequestProcessorIntegrationTest.kt`
 - **Problems:**
   - **In-batch duplicates (reproduced):** `PUT [F, F]` stores 2 rows. `storeAll` only checks the DB, and the
@@ -154,6 +168,8 @@ Decided 2026-11-18:
   - **Old entries:** handle them as decided in D3.
   - **Remove protostuff** dependencies afterwards.
   - **Failures:** an unreadable entry is reported (key plus error), never dropped.
+  - **Retry (from step 2):** retry `storeAll` once on a violation of `u_film_identity_hash` or `u_genre_name`.
+    The retry must run outside the failed transaction; the second attempt finds the stored row and updates it.
 - **Verify:**
   - A PUT that fails with 400 or 500 leaves no journal entry.
   - Adding a field to the API DTO doesn't break replay of old entries.

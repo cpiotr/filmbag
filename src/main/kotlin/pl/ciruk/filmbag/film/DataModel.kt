@@ -37,7 +37,7 @@ data class Film(
     val genres: Set<Genre> = mutableSetOf(),
 
     @Column(name = "identity_hash", columnDefinition = "CHAR(64)")
-    val identityHash: String = identityHashOf(title, year, genres)
+    val identityHash: String = identityHashOf(title, year, genres.map { it.name })
 ) {
     /** @return false if the film already has an equal score */
     fun addScore(grade: Double, quantity: Long, type: ScoreType, url: String?): Boolean {
@@ -58,8 +58,7 @@ data class Film(
 
     override fun hashCode(): Int {
         var result = id?.hashCode() ?: 0
-        // Null for films stored before the column existed, until the startup job fills it
-        result = 31 * result + Objects.hashCode(identityHash)
+        result = 31 * result + identityHash.hashCode()
         return result
     }
 
@@ -69,8 +68,8 @@ data class Film(
 }
 
 /** Films with the same title, year and genre names are the same film. */
-fun identityHashOf(title: String, year: Int, genres: Collection<Genre>): String {
-    val identity = (listOf(title, year.toString()) + genres.map { it.name }.sorted())
+fun identityHashOf(title: String, year: Int, genreNames: Collection<String>): String {
+    val identity = (listOf(title, year.toString()) + genreNames.sorted())
         .joinToString(UNIT_SEPARATOR)
     val digest = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
     return HexFormat.of().formatHex(digest)

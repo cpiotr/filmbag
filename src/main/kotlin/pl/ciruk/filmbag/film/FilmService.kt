@@ -6,16 +6,10 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.transaction.support.TransactionTemplate
 import java.math.BigDecimal
-import java.util.*
-import jakarta.annotation.PostConstruct
 
 @Service
-class FilmService(
-        private val repository: FilmRepository,
-        private val transactionTemplate: TransactionTemplate
-) {
+class FilmService(private val repository: FilmRepository) {
     private val logger = KotlinLogging.logger {}
 
     @Transactional
@@ -24,11 +18,16 @@ class FilmService(
             return
         }
 
-        val hashes = films.map { it.identityHash }
+        // A batch can name one film twice; the later copy's score wins and the scores of both are kept
+        val distinctFilms = films
+                .groupBy { it.identityHash }
+                .values
+                .map { sameFilms -> sameFilms.reduce { film, later -> film.also { copyScoreFrom(later).invoke(it) } } }
+        val hashes = distinctFilms.map { it.identityHash }
         val storedFilmsByHash = repository
                 .findAll(Specification { film, _, _ -> film.get<String>("identityHash").`in`(hashes) })
                 .associateBy { it.identityHash }
-        val (filmsToBeUpdated, filmsToBeStored) = films
+        val (filmsToBeUpdated, filmsToBeStored) = distinctFilms
                 .partition { storedFilmsByHash.containsKey(it.identityHash) }
 
         filmsToBeUpdated
@@ -80,52 +79,6 @@ class FilmService(
             val scoreListModified = film.scores.map { score -> it.addScore(score.grade, score.quantity, score.type, score.url) }
                     .fold(false, Boolean::or)
             scoreChanged.or(scoreListModified)
-        }
-    }
-
-    // @Transactional doesn't apply to @PostConstruct methods, hence the explicit transaction
-    @PostConstruct
-    private fun recalculateIdentityAndRemoveDuplicates() {
-        transactionTemplate.executeWithoutResult {
-            val (filmsToBeUpdated, filmsToBeDeleted) = selectUpdatableAndDeletable(repository.findAll())
-            if (filmsToBeUpdated.isNotEmpty()) {
-                repository.saveAll(filmsToBeUpdated)
-                logger.info { "Updated ${filmsToBeUpdated.size} films" }
-            }
-
-            if (filmsToBeDeleted.isNotEmpty()) {
-                repository.deleteAll(filmsToBeDeleted)
-                logger.info { "Deleted ${filmsToBeDeleted.size} films" }
-            }
-        }
-    }
-
-    private fun selectUpdatableAndDeletable(films: Collection<Film>): Pair<MutableList<Film>, MutableList<Film>> {
-        val filmsToBeUpdated = mutableListOf<Film>()
-        val filmsToBeDeleted = mutableListOf<Film>()
-
-        val filmsByHash = films.mapNotNull { copyIfHashChanged(it) }
-                .groupBy { it.identityHash }
-
-        filmsByHash
-                .values
-                .map { it.sortedByDescending(Film::created) }
-                .forEach {
-                    if (it.size > 1) {
-                        logger.info { "Films sharing the same hash: ${it.map(Film::toString)}" }
-                    }
-                    filmsToBeUpdated.add(it.first())
-                    filmsToBeDeleted.addAll(it.drop(1))
-                }
-        return Pair(filmsToBeUpdated, filmsToBeDeleted)
-    }
-
-    private fun copyIfHashChanged(it: Film): Film? {
-        val hash = identityHashOf(it.title, it.year, it.genres)
-        return if (hash != it.identityHash) {
-            it.copy(identityHash = hash)
-        } else {
-            null
         }
     }
 }

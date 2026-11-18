@@ -114,6 +114,19 @@ class RequestProcessorIntegrationTest(
     }
 
     @Test
+    fun `should store a film once when one request names it twice`() {
+        val filmRequest = testOtherFilmRequest(score = 0.5)
+        val laterCopy = filmRequest.copy(score = 0.6, scores = setOf(testScoreRequest(0.6, 20)))
+
+        val response = exchangePutRequest(filmRequest, laterCopy)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.NO_CONTENT)
+        val storedFilm = executeGetRequest().single()
+        assertThat(storedFilm.score).isEqualTo(0.6)
+        assertThat(storedFilm.scores).isEqualTo(filmRequest.scores + laterCopy.scores)
+    }
+
+    @Test
     fun `should update scores when film request is put twice`() {
         val filmRequest = testFilmRequest()
         val updatedFilmRequest = filmRequest.copy(
