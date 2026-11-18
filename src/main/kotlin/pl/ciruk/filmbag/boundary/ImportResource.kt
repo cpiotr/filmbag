@@ -1,6 +1,6 @@
 package pl.ciruk.filmbag.boundary
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.request.DataLoader
 import pl.ciruk.filmbag.request.ImportAlreadyRunningException

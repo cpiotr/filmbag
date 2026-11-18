@@ -1,9 +1,9 @@
 package pl.ciruk.filmbag.boundary
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.film.rangeOf

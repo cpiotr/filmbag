@@ -397,7 +397,19 @@ Decided 2026-11-18:
   - `Score.film` non-null with no cascade to the parent;
   - an entity graph on `find` instead of `@Fetch(JOIN)`.
 
-### 9. [ ] Build (Minor)
+### 9. [x] Build (Minor)
+> **Done 2026-11-18, before step 8, because step 8's entity changes rely on `allOpen`.**
+> - **Plugins:** the plugins DSL, with versions in `settings.gradle` `pluginManagement` taken from
+>   `gradle.properties`.
+> - **Build file:** a top-level `kotlin { compilerOptions }` block and an `allOpen` block for entities.
+> - **Toolchain:** the foojay toolchain resolver (1.0.0) downloads JDK 25 when it is missing.
+> - **Logging:** `io.github.oshai:kotlin-logging-jvm:8.0.7` replaces microutils 1.7.6; it only accepts lambda
+>   messages.
+> - **Tests:** the explicit JUnit API and engine are gone; `junit-platform-launcher` is declared, as the generator
+>   does.
+> - **Removed:** the configuration-time `println`.
+> - **CI:** builds the Docker image, without pushing it; verified locally. 64 tests pass.
+
 - **Plugins DSL:** `plugins { kotlin("jvm"); kotlin("plugin.spring"); kotlin("plugin.jpa");
   id("org.springframework.boot") }`, a top-level `kotlin { compilerOptions { … } }`, and the `allOpen {}` block.
 - **Logging library:** `io.github.microutils:kotlin-logging:1.7.6` → `io.github.oshai:kotlin-logging-jvm`; the

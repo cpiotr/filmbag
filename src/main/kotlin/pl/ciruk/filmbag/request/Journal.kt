@@ -1,6 +1,6 @@
 package pl.ciruk.filmbag.request
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest

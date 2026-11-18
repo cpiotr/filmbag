@@ -1,6 +1,6 @@
 package pl.ciruk.filmbag.film
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.hibernate.Hibernate
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.ScrollPosition

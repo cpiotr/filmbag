@@ -2,7 +2,7 @@ package pl.ciruk.filmbag.request
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -38,7 +38,7 @@ class DataLoader(
         if (!runningImportCancelled.compareAndSet(null, cancelled)) {
             throw ImportAlreadyRunningException()
         }
-        logger.info("Import from offset: $offset")
+        logger.info { "Import from offset: $offset" }
 
         return CompletableFuture
                 .supplyAsync(Supplier { importPages(offset, cancelled) }, taskExecutor)
@@ -55,12 +55,12 @@ class DataLoader(
     }
 
     private fun importPages(offset: Int, cancelled: AtomicBoolean): Int {
-        logger.info("Loading data from: ${provider.url}")
+        logger.info { "Loading data from: ${provider.url}" }
 
         val films = generateSequenceOfFilms(offset + 1, cancelled)
         val processedPagesCount = recordAndStoreUpToLimit(films)
         val lastPageIndex = max(offset + processedPagesCount - 1, 0)
-        logger.info("Finished loading data. Last offset was: $lastPageIndex")
+        logger.info { "Finished loading data. Last offset was: $lastPageIndex" }
         return lastPageIndex
     }
 
@@ -69,7 +69,7 @@ class DataLoader(
         var numberOfResults = 0
         for (filmBatch in sequenceOfFilmBatches) {
             if (filmBatch.isEmpty()) {
-                logger.info("Got empty collection of films. Canceling. ")
+                logger.info { "Got empty collection of films. Canceling. " }
                 return lastPage
             }
 

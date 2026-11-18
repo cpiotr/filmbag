@@ -1,2 +1,15 @@
-rootProject.name = 'filmbag'
+pluginManagement {
+    plugins {
+        id 'org.jetbrains.kotlin.jvm' version kotlinVersion
+        id 'org.jetbrains.kotlin.plugin.spring' version kotlinVersion
+        id 'org.jetbrains.kotlin.plugin.jpa' version kotlinVersion
+        id 'org.springframework.boot' version springBootVersion
+    }
+}
 
+plugins {
+    // Downloads the JDK of the Java toolchain when it is not installed
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'filmbag'
