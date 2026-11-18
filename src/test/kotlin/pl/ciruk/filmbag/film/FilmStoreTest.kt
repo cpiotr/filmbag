@@ -1,10 +1,10 @@
-package pl.ciruk.filmbag.request
+package pl.ciruk.filmbag.film
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
-class RequestProcessorTest {
+class FilmStoreTest {
     @Test
     fun `should trim text to size`() {
         val text = "Text longer than six"

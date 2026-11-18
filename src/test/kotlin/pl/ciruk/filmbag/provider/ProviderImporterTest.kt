@@ -1,4 +1,4 @@
-package pl.ciruk.filmbag.request
+package pl.ciruk.filmbag.provider
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.sun.net.httpserver.HttpExchange
@@ -13,8 +13,10 @@ import org.mockito.Mockito.*
 import org.springframework.core.task.SimpleAsyncTaskExecutor
 import org.springframework.core.task.SyncTaskExecutor
 import org.springframework.core.task.TaskExecutor
-import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.testFilmRequest
+import pl.ciruk.filmbag.film.FilmData
+import pl.ciruk.filmbag.film.FilmStore
+import pl.ciruk.filmbag.journal.Journal
+import pl.ciruk.filmbag.testFilm
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.URI
@@ -22,14 +24,14 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 
-class DataLoaderTest {
-    private lateinit var requestProcessor: RequestProcessor
+class ProviderImporterTest {
+    private lateinit var filmStore: FilmStore
     private lateinit var journal: Journal
     private val providers = mutableListOf<HttpServer>()
 
     @BeforeEach
     fun setUp() {
-        requestProcessor = mock(RequestProcessor::class.java)
+        filmStore = mock(FilmStore::class.java)
         journal = mock(Journal::class.java)
     }
 
@@ -40,12 +42,12 @@ class DataLoaderTest {
 
     @Test
     fun `should combine films from different batches up to given limit`() {
-        val dataLoader = createDataLoader(3)
+        val providerImporter = createDataLoader(3)
 
-        val firstFilm = testFilmRequest(year = 2010)
-        val secondFilm = testFilmRequest(year = 2011)
-        val thirdFilm = testFilmRequest(year = 2012)
-        val fourthFilm = testFilmRequest(year = 2013)
+        val firstFilm = testFilm(year = 2010)
+        val secondFilm = testFilm(year = 2011)
+        val thirdFilm = testFilm(year = 2012)
+        val fourthFilm = testFilm(year = 2013)
         val listOfResults = listOf(
                 listOf(firstFilm, secondFilm),
                 listOf(thirdFilm),
@@ -53,66 +55,66 @@ class DataLoaderTest {
         )
         val sequenceOfResults = listOfResults.asSequence()
 
-        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = providerImporter.recordAndStoreUpToLimit(sequenceOfResults)
 
         assertThat(numberOfProcessedPages).isEqualTo(2)
-        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
-        verify(requestProcessor).storeAll(listOf(thirdFilm))
-        verifyNoMoreInteractions(requestProcessor)
+        verify(filmStore).storeAll(listOf(firstFilm, secondFilm))
+        verify(filmStore).storeAll(listOf(thirdFilm))
+        verifyNoMoreInteractions(filmStore)
     }
 
     @Test
     fun `should combine films from different batches over a limit to avoid processing batch partially`() {
-        val dataLoader = createDataLoader(3)
+        val providerImporter = createDataLoader(3)
 
-        val firstFilm = testFilmRequest(year = 2010)
-        val secondFilm = testFilmRequest(year = 2011)
-        val thirdFilm = testFilmRequest(year = 2012)
-        val fourthFilm = testFilmRequest(year = 2013)
+        val firstFilm = testFilm(year = 2010)
+        val secondFilm = testFilm(year = 2011)
+        val thirdFilm = testFilm(year = 2012)
+        val fourthFilm = testFilm(year = 2013)
         val listOfResults = listOf(
                 listOf(firstFilm, secondFilm),
                 listOf(thirdFilm, fourthFilm)
         )
         val sequenceOfResults = listOfResults.asSequence()
 
-        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = providerImporter.recordAndStoreUpToLimit(sequenceOfResults)
 
         assertThat(numberOfProcessedPages).isEqualTo(2)
-        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
-        verify(requestProcessor).storeAll(listOf(thirdFilm, fourthFilm))
-        verifyNoMoreInteractions(requestProcessor)
+        verify(filmStore).storeAll(listOf(firstFilm, secondFilm))
+        verify(filmStore).storeAll(listOf(thirdFilm, fourthFilm))
+        verifyNoMoreInteractions(filmStore)
     }
 
     @Test
     fun `should not fetch more batches if limit reached`() {
-        val dataLoader = createDataLoader(2)
+        val providerImporter = createDataLoader(2)
 
-        val firstFilm = testFilmRequest(year = 2010)
-        val secondFilm = testFilmRequest(year = 2011)
-        val thirdFilm = testFilmRequest(year = 2012)
+        val firstFilm = testFilm(year = 2010)
+        val secondFilm = testFilm(year = 2011)
+        val thirdFilm = testFilm(year = 2012)
         @Suppress("UNCHECKED_CAST")
-        val supplier = mock(Supplier::class.java) as Supplier<List<FilmRequest>>
+        val supplier = mock(Supplier::class.java) as Supplier<List<FilmData>>
         `when`(supplier.get()).thenReturn(listOf(firstFilm, secondFilm)).thenReturn(listOf(thirdFilm))
 
         val sequenceOfResults = generateSequence { supplier.get() }
 
 
-        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = providerImporter.recordAndStoreUpToLimit(sequenceOfResults)
 
         assertThat(numberOfProcessedPages).isEqualTo(1)
-        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
+        verify(filmStore).storeAll(listOf(firstFilm, secondFilm))
         verify(supplier).get()
-        verifyNoMoreInteractions(requestProcessor)
+        verifyNoMoreInteractions(filmStore)
     }
 
     @Test
     fun `should store films until empty batch is received`() {
-        val dataLoader = createDataLoader(10)
+        val providerImporter = createDataLoader(10)
 
-        val firstFilm = testFilmRequest(year = 2010)
-        val secondFilm = testFilmRequest(year = 2011)
-        val thirdFilm = testFilmRequest(year = 2012)
-        val fourthFilm = testFilmRequest(year = 2013)
+        val firstFilm = testFilm(year = 2010)
+        val secondFilm = testFilm(year = 2011)
+        val thirdFilm = testFilm(year = 2012)
+        val fourthFilm = testFilm(year = 2013)
         val listOfResults = listOf(
                 listOf(firstFilm, secondFilm),
                 listOf(thirdFilm, fourthFilm),
@@ -120,22 +122,22 @@ class DataLoaderTest {
         )
         val sequenceOfResults = listOfResults.asSequence()
 
-        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = providerImporter.recordAndStoreUpToLimit(sequenceOfResults)
 
         assertThat(numberOfProcessedPages).isEqualTo(2)
-        verify(requestProcessor).storeAll(listOf(firstFilm, secondFilm))
-        verify(requestProcessor).storeAll(listOf(thirdFilm, fourthFilm))
-        verifyNoMoreInteractions(requestProcessor)
+        verify(filmStore).storeAll(listOf(firstFilm, secondFilm))
+        verify(filmStore).storeAll(listOf(thirdFilm, fourthFilm))
+        verifyNoMoreInteractions(filmStore)
     }
 
     @Test
     fun `should record only films that were stored`() {
-        val dataLoader = createDataLoader(10)
-        val storedFilms = listOf(testFilmRequest(year = 2010))
-        val failingFilms = listOf(testFilmRequest(year = 2011))
-        doThrow(IllegalStateException("Storing failed")).`when`(requestProcessor).storeAll(failingFilms)
+        val providerImporter = createDataLoader(10)
+        val storedFilms = listOf(testFilm(year = 2010))
+        val failingFilms = listOf(testFilm(year = 2011))
+        doThrow(IllegalStateException("Storing failed")).`when`(filmStore).storeAll(failingFilms)
 
-        assertThatThrownBy { dataLoader.recordAndStoreUpToLimit(sequenceOf(storedFilms, failingFilms)) }
+        assertThatThrownBy { providerImporter.recordAndStoreUpToLimit(sequenceOf(storedFilms, failingFilms)) }
             .hasMessage("Storing failed")
 
         verify(journal).record(storedFilms)
@@ -144,30 +146,30 @@ class DataLoaderTest {
 
     @Test
     fun `should indicate no processed pages`() {
-        val dataLoader = createDataLoader(10)
+        val providerImporter = createDataLoader(10)
 
         val listOfResults = listOf(
-                listOf<FilmRequest>()
+                listOf<FilmData>()
         )
         val sequenceOfResults = listOfResults.asSequence()
 
-        val numberOfProcessedPages = dataLoader.recordAndStoreUpToLimit(sequenceOfResults)
+        val numberOfProcessedPages = providerImporter.recordAndStoreUpToLimit(sequenceOfResults)
 
         assertThat(numberOfProcessedPages).isEqualTo(0)
-        verifyNoMoreInteractions(requestProcessor)
+        verifyNoMoreInteractions(filmStore)
     }
 
     @Test
     fun `should fail import when film provider returns an error`() {
         val provider = startProvider { it.respond(503, "") }
-        val dataLoader = createDataLoader(10, provider.filmsUrl())
+        val providerImporter = createDataLoader(10, provider.filmsUrl())
 
-        val importResult = dataLoader.importAsync()
+        val importResult = providerImporter.importAsync()
 
         assertThatThrownBy { importResult.join() }
             .hasCauseInstanceOf(IOException::class.java)
             .hasMessageContaining("HTTP 503")
-        verifyNoInteractions(requestProcessor)
+        verifyNoInteractions(filmStore)
     }
 
     @Test
@@ -179,16 +181,16 @@ class DataLoaderTest {
             release.await()
             it.respond(200, "[]")
         }
-        val dataLoader = createDataLoader(10, provider.filmsUrl(), SimpleAsyncTaskExecutor())
+        val providerImporter = createDataLoader(10, provider.filmsUrl(), SimpleAsyncTaskExecutor())
 
-        val firstImport = dataLoader.importAsync()
+        val firstImport = providerImporter.importAsync()
         pageRequested.await(5, TimeUnit.SECONDS)
 
-        assertThatThrownBy { dataLoader.importAsync() }
+        assertThatThrownBy { providerImporter.importAsync() }
             .isInstanceOf(ImportAlreadyRunningException::class.java)
         release.countDown()
         firstImport.get(5, TimeUnit.SECONDS)
-        assertThat(dataLoader.importAsync().get(5, TimeUnit.SECONDS)).isEqualTo(0)
+        assertThat(providerImporter.importAsync().get(5, TimeUnit.SECONDS)).isEqualTo(0)
     }
 
     @Test
@@ -200,24 +202,24 @@ class DataLoaderTest {
             release.await()
             it.respond(200, """[{"title": "Film", "year": 2000, "link": "http://film", "score": 0.5}]""")
         }
-        val dataLoader = createDataLoader(10, provider.filmsUrl(), SimpleAsyncTaskExecutor())
+        val providerImporter = createDataLoader(10, provider.filmsUrl(), SimpleAsyncTaskExecutor())
 
-        val importResult = dataLoader.importAsync()
+        val importResult = providerImporter.importAsync()
         pageRequested.await(5, TimeUnit.SECONDS)
-        dataLoader.cancelImport()
+        providerImporter.cancelImport()
         release.countDown()
 
         assertThat(importResult.get(5, TimeUnit.SECONDS)).isEqualTo(0)
-        verify(requestProcessor, times(1)).storeAll(anyList())
+        verify(filmStore, times(1)).storeAll(anyList())
     }
 
     private fun createDataLoader(
         filmProviderLimit: Int,
         providerUrl: String = "http://localhost/films",
         taskExecutor: TaskExecutor = SyncTaskExecutor()
-    ): DataLoader {
-        return DataLoader(
-            requestProcessor, journal, OkHttpClient(), jacksonObjectMapper(), taskExecutor,
+    ): ProviderImporter {
+        return ProviderImporter(
+            filmStore, journal, OkHttpClient(), jacksonObjectMapper(), taskExecutor,
             FilmProviderProperties(URI(providerUrl), filmProviderLimit))
     }
 

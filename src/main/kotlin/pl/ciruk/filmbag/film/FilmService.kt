@@ -26,33 +26,25 @@ class FilmService(
 
     @Transactional
     fun storeAll(films: List<Film>) {
-        if (films.isEmpty()) {
-            return
-        }
-
         // A batch can name one film twice; the later copy's score wins and the scores of both are kept
         val distinctFilms = films
                 .groupBy { it.identityHash }
                 .values
-                .map { sameFilms -> sameFilms.reduce { film, later -> film.also { copyScoreFrom(later).invoke(it) } } }
+                .map { sameFilms -> sameFilms.reduce { film, laterCopy -> film.apply { updateScoresFrom(laterCopy) } } }
+        if (distinctFilms.isEmpty()) {
+            return
+        }
+
         val hashes = distinctFilms.map { it.identityHash }
         val storedFilmsByHash = repository
                 .findAll(Specification { film, _, _ -> film.get<String>("identityHash").`in`(hashes) })
                 .associateBy { it.identityHash }
-        val (filmsToBeUpdated, filmsToBeStored) = distinctFilms
-                .partition { storedFilmsByHash.containsKey(it.identityHash) }
+        val (filmsToUpdate, filmsToStore) = distinctFilms.partition { it.identityHash in storedFilmsByHash }
 
-        filmsToBeUpdated
-                .map { storedFilmsByHash.getValue(it.identityHash) to it }
-                .filter { (storedFilm, film) -> copyScoreFrom(film).invoke(storedFilm) }
-                .map { (storedFilm, _) -> storedFilm }
-                .apply {
-                    val updated = repository.saveAll(this)
-                    logger.info { "Updated ${updated.size} films" }
-                }
-
-        repository.saveAll(filmsToBeStored)
-                .apply { logger.info { "Stored ${this.size} films" } }
+        // Stored films are managed, so their changes are saved on commit
+        val updatedCount = filmsToUpdate.count { storedFilmsByHash.getValue(it.identityHash).updateScoresFrom(it) }
+        repository.saveAll(filmsToStore)
+        logger.info { "Updated $updatedCount and stored ${filmsToStore.size} films" }
     }
 
     @Transactional(readOnly = true)
@@ -102,18 +94,6 @@ class FilmService(
             is AtMost -> Specification { film, _, builder -> builder.lessThanOrEqualTo(film[propertyName], range.to) }
             is Between -> Specification { film, _, builder -> builder.between(film[propertyName], range.from, range.to) }
             is Unbounded -> null
-        }
-    }
-
-    private fun copyScoreFrom(film: Film): (Film) -> Boolean {
-        return {
-            val scoreChanged = if (it.score != film.score) {
-                it.score = film.score
-                true
-            } else false
-            val scoreListModified = film.scores.map { score -> it.addScore(score.grade, score.quantity, score.type, score.url) }
-                    .fold(false, Boolean::or)
-            scoreChanged.or(scoreListModified)
         }
     }
 }

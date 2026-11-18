@@ -378,7 +378,29 @@ Decided 2026-11-18:
   every 30 s.
 - **Open-in-view:** `spring.jpa.open-in-view=false` does nothing without Spring MVC. Keep it if D1 goes to MVC.
 
-### 8. [ ] Names and package structure (Major/Minor)
+### 8. [x] Names and package structure (Major/Minor)
+> **Done 2026-11-18.**
+> - **Packages:** `film` (entities, services, `FilmData`, `FilmStore`) ← `journal` ← `provider` ← `boundary`
+>   (web, plus `Jersey` and `Security`). No cycles; `config` and `request` are gone.
+> - **Renames:**
+>   - `FilmRequest`/`ScoreRequest` → `FilmData`/`ScoreData`, and `convertToRequest` → `toFilmData`;
+>   - `RequestProcessor` → `FilmStore`, because "FilmImporter" would be confused with the provider import;
+>   - `DataLoader` → `ProviderImporter`;
+>   - the clients are split into `JournalConfiguration` and `FilmProviderConfiguration`;
+>   - entities live in `Entities.kt`;
+>   - tests and the test helpers `testFilm`/`testOtherFilm`/`testScore` follow.
+> - **Entities:**
+>   - plain classes with business-key equality: `Film` by identity hash, `Genre` by name; `Score` is unchanged;
+>   - `Score.film` is required and lazy, with no cascade to its parent;
+>   - `@Fetch(JOIN)` is gone, so genres are lazy and batch-loaded.
+> - **`FilmService.storeAll`:** uses `Film.updateScoresFrom` instead of a mutating lambda inside `filter`, and
+>   relies on dirty checking instead of `saveAll` for managed films.
+> - **Measured:** lazy genres cut the unchanged re-import from 43 to 33 statements, snapshot from 819 to 615, and
+>   replay from 969 to 734. The doubled genre load from step 5 is gone; GET takes 3 statements.
+> - **Left for step 10, which replaces the Jersey resources:** request-based names in `FilmResource`, and
+>   `@Service` on resources.
+> - **Tests:** 64 pass.
+
 - **Package cycles:** `boundary` ↔ `request` and `request` → `config` → `boundary`.
   - Move `FilmRequest` and `ScoreRequest` out of `boundary`, and `Jersey.kt` into `boundary`.
   - Evidence: [Spring Modulith verification](https://docs.spring.io/spring-modulith/reference/verification.html)

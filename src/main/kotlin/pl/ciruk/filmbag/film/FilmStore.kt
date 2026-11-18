@@ -1,68 +1,60 @@
-package pl.ciruk.filmbag.request
+package pl.ciruk.filmbag.film
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.hibernate.exception.ConstraintViolationException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
-import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.boundary.ScoreRequest
-import pl.ciruk.filmbag.film.Film
-import pl.ciruk.filmbag.film.FilmService
-import pl.ciruk.filmbag.film.Genre
-import pl.ciruk.filmbag.film.GenreService
-import pl.ciruk.filmbag.film.ScoreType
 
 @Service
-class RequestProcessor(
+class FilmStore(
     private val genreService: GenreService,
     private val filmService: FilmService,
     private val transactionTemplate: TransactionTemplate
 ) {
     private val logger = KotlinLogging.logger {}
 
-    fun storeAll(filmRequests: List<FilmRequest>) {
-        val (validRequests, invalidRequests) = filmRequests.partition { it.missingRequiredFields().isEmpty() }
-        invalidRequests.forEach {
+    fun storeAll(films: List<FilmData>) {
+        val (validFilms, invalidFilms) = films.partition { it.missingRequiredFields().isEmpty() }
+        invalidFilms.forEach {
             logger.warn { "Skipping film <${it.title}> missing ${it.missingRequiredFields().joinToString()}" }
         }
 
         try {
-            transactionTemplate.executeWithoutResult { store(validRequests) }
+            transactionTemplate.executeWithoutResult { store(validFilms) }
         } catch (e: DataIntegrityViolationException) {
             if (!e.isUniqueViolation()) throw e
             // Another request stored one of these films or genres after this one looked for them.
             // A new transaction finds them and updates them instead.
             logger.info { "Storing again after a concurrent insert: ${e.message}" }
-            transactionTemplate.executeWithoutResult { store(validRequests) }
+            transactionTemplate.executeWithoutResult { store(validFilms) }
         }
     }
 
     private fun DataIntegrityViolationException.isUniqueViolation() =
         (cause as? ConstraintViolationException)?.kind == ConstraintViolationException.ConstraintKind.UNIQUE
 
-    private fun store(validRequests: List<FilmRequest>) {
-        val genresByName = genreService.merge(validRequests.flatMap { it.genres }).associateBy { it.name }
+    private fun store(validFilms: List<FilmData>) {
+        val genresByName = genreService.merge(validFilms.flatMap { it.genres }).associateBy { it.name }
 
-        val films = validRequests.map { convertToFilm(it, genresByName) }
-        filmService.storeAll(films)
+        filmService.storeAll(validFilms.map { convertToFilm(it, genresByName) })
     }
 
-    private fun convertToFilm(filmRequest: FilmRequest, genresByName: Map<String, Genre>): Film {
-        val genres = filmRequest.genres.map { genresByName.getValue(it) }.toSet()
+    private fun convertToFilm(data: FilmData, genresByName: Map<String, Genre>): Film {
+        val genres = data.genres.map { genresByName.getValue(it) }.toSet()
 
         val film = Film(
-                created = filmRequest.created,
-                title = filmRequest.title!!,
-                year = filmRequest.year!!,
-                link = filmRequest.link!!,
-                score = filmRequest.score!!,
+                created = data.created,
+                title = data.title!!,
+                year = data.year!!,
+                link = data.link!!,
+                score = data.score!!,
                 genres = genres,
-                plot = trimToLimit(filmRequest.plot, PLOT_MAX_LENGTH),
-                poster = filmRequest.poster
+                plot = trimToLimit(data.plot, PLOT_MAX_LENGTH),
+                poster = data.poster
         )
-        filmRequest.scores
-                .filter(ScoreRequest::isValid)
+        data.scores
+                .filter(ScoreData::isValid)
                 .forEach { film.addScore(it.grade!!, it.quantity!!, convertToScoreType(it.type), it.url) }
         return film
     }

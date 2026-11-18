@@ -6,26 +6,25 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import pl.ciruk.filmbag.IntegrationTest
 import pl.ciruk.filmbag.TestData
-import pl.ciruk.filmbag.request.RequestProcessor
-import pl.ciruk.filmbag.testFilmRequest
-import pl.ciruk.filmbag.testOtherFilmRequest
+import pl.ciruk.filmbag.testFilm
+import pl.ciruk.filmbag.testOtherFilm
 import java.time.ZonedDateTime
 
 @IntegrationTest
 internal class FilmServiceTest(
-    @Autowired val requestProcessor: RequestProcessor,
+    @Autowired val filmStore: FilmStore,
     @Autowired val filmService: FilmService,
     @Autowired val testData: TestData
 ) {
 
-    val firstFilm = testFilmRequest(2009, 0.9)
-    val secondFilm = testFilmRequest(2011, 0.7)
-    val thirdFilm = testOtherFilmRequest(2012, 0.6)
+    val firstFilm = testFilm(2009, 0.9)
+    val secondFilm = testFilm(2011, 0.7)
+    val thirdFilm = testOtherFilm(2012, 0.6)
 
     @BeforeEach
     internal fun setUp() {
         testData.deleteAll()
-        requestProcessor.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
+        filmStore.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
     }
 
     @Test
@@ -127,8 +126,8 @@ internal class FilmServiceTest(
     @Test
     fun `should page through every film once, newest first, even when films share a creation time`() {
         val sameTime = ZonedDateTime.parse("2001-01-01T00:00:00Z")
-        val filmsCreatedTogether = List(5) { testOtherFilmRequest(year = 2000 + it).copy(created = sameTime) }
-        requestProcessor.storeAll(filmsCreatedTogether)
+        val filmsCreatedTogether = List(5) { testOtherFilm(year = 2000 + it).copy(created = sameTime) }
+        filmStore.storeAll(filmsCreatedTogether)
 
         val pages = filmService.findAllInPages(pageSize = 2).toList()
 

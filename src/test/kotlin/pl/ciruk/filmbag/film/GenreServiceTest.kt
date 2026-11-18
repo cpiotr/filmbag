@@ -6,13 +6,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import pl.ciruk.filmbag.IntegrationTest
 import pl.ciruk.filmbag.TestData
-import pl.ciruk.filmbag.request.RequestProcessor
-import pl.ciruk.filmbag.testFilmRequest
-import pl.ciruk.filmbag.testOtherFilmRequest
+import pl.ciruk.filmbag.testFilm
+import pl.ciruk.filmbag.testOtherFilm
 
 @IntegrationTest
 internal class GenreServiceTest(
-        @Autowired val requestProcessor: RequestProcessor,
+        @Autowired val filmStore: FilmStore,
         @Autowired val genreService: GenreService,
         @Autowired val testData: TestData) {
 
@@ -21,14 +20,14 @@ internal class GenreServiceTest(
         testData.deleteAll()
     }
 
-    val firstFilm = testFilmRequest(2009)
-    val secondFilm = testFilmRequest(2011)
-    val thirdFilm = testOtherFilmRequest(2012)
+    val firstFilm = testFilm(2009)
+    val secondFilm = testFilm(2011)
+    val thirdFilm = testOtherFilm(2012)
 
     @Test
     fun `should not create duplicate genres`() {
         val expectedGenres = (firstFilm.genres + secondFilm.genres + thirdFilm.genres).toSet()
-        requestProcessor.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
+        filmStore.storeAll(listOf(firstFilm, secondFilm, thirdFilm))
 
         val genres = genreService.findAll()
 

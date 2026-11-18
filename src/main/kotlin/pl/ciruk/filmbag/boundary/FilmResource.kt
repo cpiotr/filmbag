@@ -5,10 +5,12 @@ import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.springframework.stereotype.Service
+import pl.ciruk.filmbag.film.FilmData
 import pl.ciruk.filmbag.film.FilmService
+import pl.ciruk.filmbag.film.FilmStore
 import pl.ciruk.filmbag.film.rangeOf
-import pl.ciruk.filmbag.request.Journal
-import pl.ciruk.filmbag.request.RequestProcessor
+import pl.ciruk.filmbag.film.toFilmData
+import pl.ciruk.filmbag.journal.Journal
 import java.math.BigDecimal
 
 private val logger = KotlinLogging.logger {}
@@ -25,13 +27,13 @@ class FilmReadResource(private val filmService: FilmService) {
         @QueryParam("scoreTo") scoreTo: BigDecimal?,
         @DefaultValue(firstPage.toString()) @QueryParam("page") page: Int,
         @DefaultValue(defaultPageSize.toString()) @QueryParam("pageSize") pageSize: Int
-    ): List<FilmRequest> {
+    ): List<FilmData> {
         if (page < 0 || pageSize !in 1..maxPageSize) {
             throw badRequest("page must be at least 0 and pageSize between 1 and $maxPageSize")
         }
 
         return filmService.find(rangeOf(yearFrom, yearTo), rangeOf(scoreFrom, scoreTo), page, pageSize)
-            .map { it.convertToRequest() }
+            .map { it.toFilmData() }
     }
 
     companion object {
@@ -44,12 +46,12 @@ class FilmReadResource(private val filmService: FilmService) {
 @Service
 @Path("/films")
 class FilmWriteResource(
-    private val requestProcessor: RequestProcessor,
+    private val filmStore: FilmStore,
     private val journal: Journal
 ) {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
-    fun storeOrUpdateScores(filmRequests: List<FilmRequest>) {
+    fun storeOrUpdateScores(filmRequests: List<FilmData>) {
         val problems = filmRequests.mapIndexedNotNull { index, filmRequest ->
             filmRequest.missingRequiredFields()
                 .takeIf { it.isNotEmpty() }
@@ -60,7 +62,7 @@ class FilmWriteResource(
         }
 
         logger.info { "Store ${filmRequests.size} films, if missing" }
-        requestProcessor.storeAll(filmRequests)
+        filmStore.storeAll(filmRequests)
         journal.recordAsync(filmRequests)
     }
 }

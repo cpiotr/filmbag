@@ -1,4 +1,4 @@
-package pl.ciruk.filmbag.config
+package pl.ciruk.filmbag.boundary
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.context.annotation.Bean

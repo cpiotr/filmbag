@@ -2,7 +2,7 @@ package pl.ciruk.filmbag
 
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
-import pl.ciruk.filmbag.request.Journal
+import pl.ciruk.filmbag.journal.Journal
 import java.time.Duration
 import java.time.Instant
 

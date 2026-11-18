@@ -1,4 +1,4 @@
-package pl.ciruk.filmbag.request
+package pl.ciruk.filmbag.provider
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

@@ -1,12 +1,10 @@
-package pl.ciruk.filmbag.boundary
+package pl.ciruk.filmbag.film
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import pl.ciruk.filmbag.film.Film
-import pl.ciruk.filmbag.film.ScoreType
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
-data class FilmRequest(
+data class FilmData(
     val created: ZonedDateTime = ZonedDateTime.now().withFixedOffsetZone().truncatedTo(ChronoUnit.MICROS),
     val title: String? = null,
     val year: Int? = null,
@@ -15,7 +13,7 @@ data class FilmRequest(
     val poster: String? = null,
     val score: Double? = null,
     val numberOfScores: Int = 0,
-    val scores: Set<ScoreRequest> = mutableSetOf(),
+    val scores: Set<ScoreData> = mutableSetOf(),
     val genres: Set<String> = mutableSetOf()
 ) {
     fun missingRequiredFields(): List<String> = listOfNotNull(
@@ -26,7 +24,7 @@ data class FilmRequest(
     )
 }
 
-data class ScoreRequest(
+data class ScoreData(
     val grade: Double? = null,
     val quantity: Long? = null,
     val type: String = ScoreType.UNKNOWN.name,
@@ -38,15 +36,15 @@ data class ScoreRequest(
     }
 }
 
-fun Film.convertToRequest(): FilmRequest {
-    return FilmRequest(
+fun Film.toFilmData(): FilmData {
+    return FilmData(
         created = this.created,
         title = this.title,
         year = this.year,
         link = this.link,
         score = this.score,
         numberOfScores = this.scores.size,
-        scores = this.scores.map { ScoreRequest(it.grade, it.quantity, it.type.name, it.url) }.toSet(),
+        scores = this.scores.map { ScoreData(it.grade, it.quantity, it.type.name, it.url) }.toSet(),
         genres = this.genres.map { it.name }.toSet(),
         plot = this.plot,
         poster = this.poster

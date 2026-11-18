@@ -6,18 +6,18 @@ import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
-import pl.ciruk.filmbag.request.Journal
-import pl.ciruk.filmbag.request.RequestProcessor
-import pl.ciruk.filmbag.testFilmRequest
+import pl.ciruk.filmbag.journal.Journal
+import pl.ciruk.filmbag.film.FilmStore
+import pl.ciruk.filmbag.testFilm
 
 class FilmWriteResourceTest {
-    private val requestProcessor = mock(RequestProcessor::class.java)
+    private val filmStore = mock(FilmStore::class.java)
     private val journal = mock(Journal::class.java)
-    private val resource = FilmWriteResource(requestProcessor, journal)
+    private val resource = FilmWriteResource(filmStore, journal)
 
     @Test
     fun `should record stored films`() {
-        val films = listOf(testFilmRequest())
+        val films = listOf(testFilm())
 
         resource.storeOrUpdateScores(films)
 
@@ -26,8 +26,8 @@ class FilmWriteResourceTest {
 
     @Test
     fun `should not record films that could not be stored`() {
-        val films = listOf(testFilmRequest())
-        doThrow(IllegalStateException("Storing failed")).`when`(requestProcessor).storeAll(films)
+        val films = listOf(testFilm())
+        doThrow(IllegalStateException("Storing failed")).`when`(filmStore).storeAll(films)
 
         assertThatThrownBy { resource.storeOrUpdateScores(films) }.hasMessage("Storing failed")
 

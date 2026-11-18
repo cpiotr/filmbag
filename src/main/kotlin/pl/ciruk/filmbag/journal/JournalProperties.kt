@@ -1,4 +1,4 @@
-package pl.ciruk.filmbag.request
+package pl.ciruk.filmbag.journal
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 

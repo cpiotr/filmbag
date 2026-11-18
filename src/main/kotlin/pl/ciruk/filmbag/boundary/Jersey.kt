@@ -1,11 +1,7 @@
-package pl.ciruk.filmbag.config
+package pl.ciruk.filmbag.boundary
 
 import org.glassfish.jersey.server.ResourceConfig
 import org.springframework.context.annotation.Configuration
-import pl.ciruk.filmbag.boundary.FilmReadResource
-import pl.ciruk.filmbag.boundary.FilmWriteResource
-import pl.ciruk.filmbag.boundary.ImportResource
-import pl.ciruk.filmbag.boundary.JournalResource
 import jakarta.ws.rs.ApplicationPath
 
 @Configuration

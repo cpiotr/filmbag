@@ -2,8 +2,8 @@ package pl.ciruk.filmbag.boundary
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
-import pl.ciruk.filmbag.request.DataLoader
-import pl.ciruk.filmbag.request.ImportAlreadyRunningException
+import pl.ciruk.filmbag.provider.ProviderImporter
+import pl.ciruk.filmbag.provider.ImportAlreadyRunningException
 import java.io.IOException
 import java.util.concurrent.CompletionException
 import jakarta.ws.rs.*
@@ -15,7 +15,7 @@ import jakarta.ws.rs.core.Response
 
 @Service
 @Path("/import")
-class ImportResource(private val dataLoader: DataLoader) {
+class ImportResource(private val providerImporter: ProviderImporter) {
     private val logger = KotlinLogging.logger {}
 
     @POST
@@ -32,7 +32,7 @@ class ImportResource(private val dataLoader: DataLoader) {
         }
 
         val importResult = try {
-            dataLoader.importAsync(offset)
+            providerImporter.importAsync(offset)
         } catch (e: ImportAlreadyRunningException) {
             asyncResponse.resume(textResponse(Response.Status.CONFLICT, e.message!!))
             return
@@ -40,7 +40,7 @@ class ImportResource(private val dataLoader: DataLoader) {
 
         asyncResponse.register(ConnectionCallback {
             logger.info { "Connection cancelled" }
-            dataLoader.cancelImport()
+            providerImporter.cancelImport()
         })
         importResult.whenComplete { lastPage, error ->
             asyncResponse.resume(
@@ -55,7 +55,7 @@ class ImportResource(private val dataLoader: DataLoader) {
     fun cancel(): Response {
         logger.info { "Cancel import" }
 
-        dataLoader.cancelImport()
+        providerImporter.cancelImport()
 
         return Response.ok().build()
     }

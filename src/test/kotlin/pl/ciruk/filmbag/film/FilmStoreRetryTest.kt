@@ -1,4 +1,4 @@
-package pl.ciruk.filmbag.request
+package pl.ciruk.filmbag.film
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -9,14 +9,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import pl.ciruk.filmbag.IntegrationTest
 import pl.ciruk.filmbag.TestData
-import pl.ciruk.filmbag.film.FilmService
-import pl.ciruk.filmbag.film.identityHashOf
-import pl.ciruk.filmbag.testOtherFilmRequest
+import pl.ciruk.filmbag.testOtherFilm
 import javax.sql.DataSource
 
 @IntegrationTest
-class RequestProcessorRetryTest(
-    @Autowired val requestProcessor: RequestProcessor,
+class FilmStoreRetryTest(
+    @Autowired val filmStore: FilmStore,
     @Autowired val dataSource: DataSource,
     @Autowired val testData: TestData
 ) {
@@ -30,7 +28,7 @@ class RequestProcessorRetryTest(
 
     @Test
     fun `should update a film that another request stored after this one looked for it`() {
-        val filmRequest = testOtherFilmRequest()
+        val filmRequest = testOtherFilm()
         val identityHash = identityHashOf(filmRequest.title!!, filmRequest.year!!, filmRequest.genres)
         doAnswer {
             // Runs after this request has read the database, so its first attempt inserts a duplicate
@@ -38,7 +36,7 @@ class RequestProcessorRetryTest(
             it.callRealMethod()
         }.doCallRealMethod().`when`(filmService).storeAll(anyList())
 
-        requestProcessor.storeAll(listOf(filmRequest))
+        filmStore.storeAll(listOf(filmRequest))
 
         assertThat(query("SELECT id FROM film WHERE identity_hash = '$identityHash'")).containsExactly(STORED_FILM_ID)
         assertThat(query("SELECT film_id FROM score")).containsOnly(STORED_FILM_ID).hasSize(filmRequest.scores.size)

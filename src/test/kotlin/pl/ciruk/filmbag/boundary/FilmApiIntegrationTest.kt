@@ -1,4 +1,4 @@
-package pl.ciruk.filmbag.integration
+package pl.ciruk.filmbag.boundary
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -11,17 +11,17 @@ import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.boundary.ScoreRequest
+import pl.ciruk.filmbag.film.FilmData
+import pl.ciruk.filmbag.film.ScoreData
 import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.film.ScoreType
-import pl.ciruk.filmbag.testFilmRequest
-import pl.ciruk.filmbag.testOtherFilmRequest
-import pl.ciruk.filmbag.testScoreRequest
+import pl.ciruk.filmbag.testFilm
+import pl.ciruk.filmbag.testOtherFilm
+import pl.ciruk.filmbag.testScore
 import java.util.UUID
 
 @IntegrationTest
-class RequestProcessorIntegrationTest(
+class FilmApiIntegrationTest(
     @Autowired val restTemplate: TestRestTemplate,
     @Autowired val genreService: GenreService,
     @Autowired val testData: TestData
@@ -34,8 +34,8 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should get created films`() {
-        val filmRequest = testFilmRequest()
-        val otherFilmRequest = testOtherFilmRequest()
+        val filmRequest = testFilm()
+        val otherFilmRequest = testOtherFilm()
 
         executePutRequest(filmRequest, otherFilmRequest)
         val arrayOfFilmRequests = executeGetRequest()
@@ -45,10 +45,10 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should find created film by year`() {
-        val filmRequest = testFilmRequest(year = 2020)
-        val otherFilmRequest = testOtherFilmRequest(year = 2010)
-        val yetAnotherFilmRequest = testFilmRequest(year = 2021)
-        val nextFilmRequest = testFilmRequest(year = 2030)
+        val filmRequest = testFilm(year = 2020)
+        val otherFilmRequest = testOtherFilm(year = 2010)
+        val yetAnotherFilmRequest = testFilm(year = 2021)
+        val nextFilmRequest = testFilm(year = 2030)
 
         executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
         val arrayOfFilmRequests = executeGetRequest(yearFrom = 2019, yearTo = 2025)
@@ -58,10 +58,10 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should find created film by score`() {
-        val filmRequest = testFilmRequest(score = 0.61)
-        val otherFilmRequest = testOtherFilmRequest(score = 0.65)
-        val yetAnotherFilmRequest = testFilmRequest(score = 0.7)
-        val nextFilmRequest = testFilmRequest(score = 0.8)
+        val filmRequest = testFilm(score = 0.61)
+        val otherFilmRequest = testOtherFilm(score = 0.65)
+        val yetAnotherFilmRequest = testFilm(score = 0.7)
+        val nextFilmRequest = testFilm(score = 0.8)
 
         executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
         val arrayOfFilmRequests = executeGetRequest(scoreFrom = 0.625, scoreTo = 0.75)
@@ -71,10 +71,10 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should find created film by score and year`() {
-        val filmRequest = testFilmRequest(score = 0.61, year = 2005)
-        val otherFilmRequest = testOtherFilmRequest(score = 0.65, year = 2010)
-        val yetAnotherFilmRequest = testFilmRequest(score = 0.7, year = 2015)
-        val nextFilmRequest = testFilmRequest(score = 0.8, year = 2020)
+        val filmRequest = testFilm(score = 0.61, year = 2005)
+        val otherFilmRequest = testOtherFilm(score = 0.65, year = 2010)
+        val yetAnotherFilmRequest = testFilm(score = 0.7, year = 2015)
+        val nextFilmRequest = testFilm(score = 0.8, year = 2020)
 
         executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
         val arrayOfFilmRequests = executeGetRequest(scoreFrom = 0.625, scoreTo = 0.75, yearFrom = 2013)
@@ -84,7 +84,7 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should not store single film twice`() {
-        val filmRequest = testFilmRequest()
+        val filmRequest = testFilm()
 
         executePutRequest(filmRequest)
         executePutRequest(filmRequest)
@@ -97,8 +97,8 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should store a film once when one request names it twice`() {
-        val filmRequest = testOtherFilmRequest(score = 0.5)
-        val laterCopy = filmRequest.copy(score = 0.6, scores = setOf(testScoreRequest(0.6, 20)))
+        val filmRequest = testOtherFilm(score = 0.5)
+        val laterCopy = filmRequest.copy(score = 0.6, scores = setOf(testScore(0.6, 20)))
 
         val response = exchangePutRequest(filmRequest, laterCopy)
 
@@ -110,10 +110,10 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should update scores when film request is put twice`() {
-        val filmRequest = testFilmRequest()
+        val filmRequest = testFilm()
         val updatedFilmRequest = filmRequest.copy(
             score = filmRequest.score?.plus(1.0),
-            scores = filmRequest.scores.plus(testScoreRequest(0.789, 1234)),
+            scores = filmRequest.scores.plus(testScore(0.789, 1234)),
             numberOfScores = filmRequest.numberOfScores + 1
         )
 
@@ -128,9 +128,9 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should get paginated films sorted by creation time in descending order`() {
-        val filmRequest = testFilmRequest()
+        val filmRequest = testFilm()
         executePutRequest(filmRequest)
-        val otherFilmRequest = testOtherFilmRequest()
+        val otherFilmRequest = testOtherFilm()
         executePutRequest(otherFilmRequest)
 
         assertThat(executeGetRequest(page = 0, pageSize = 1)).containsOnly(otherFilmRequest)
@@ -142,10 +142,10 @@ class RequestProcessorIntegrationTest(
         assertThat(genreService.findAll())
             .isEmpty()
 
-        val filmRequest = testFilmRequest(year = 2020)
-        val otherFilmRequest = testOtherFilmRequest(year = 2010)
-        val yetAnotherFilmRequest = testFilmRequest(year = 2021)
-        val nextFilmRequest = testFilmRequest(year = 2030)
+        val filmRequest = testFilm(year = 2020)
+        val otherFilmRequest = testOtherFilm(year = 2010)
+        val yetAnotherFilmRequest = testFilm(year = 2021)
+        val nextFilmRequest = testFilm(year = 2030)
 
         executePutRequest(filmRequest, otherFilmRequest, yetAnotherFilmRequest, nextFilmRequest)
 
@@ -158,7 +158,7 @@ class RequestProcessorIntegrationTest(
         assertThat(genreService.findAll())
             .isEmpty()
 
-        val filmRequest = testFilmRequest(year = 2020)
+        val filmRequest = testFilm(year = 2020)
 
         executePutRequest(filmRequest)
         val foundFilms = executeGetRequest(page = 0, pageSize = 1)
@@ -198,7 +198,7 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should reject films without required fields`() {
-        val response = exchangePutRequest(testFilmRequest(), FilmRequest(title = "No year"))
+        val response = exchangePutRequest(testFilm(), FilmData(title = "No year"))
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
         assertThat(response.body).isEqualTo("film 1 is missing year, link, score")
@@ -216,7 +216,7 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should store score without url`() {
-        val filmRequest = testOtherFilmRequest().copy(scores = setOf(ScoreRequest(0.5, 100, url = null)))
+        val filmRequest = testOtherFilm().copy(scores = setOf(ScoreData(0.5, 100, url = null)))
 
         val response = exchangePutRequest(filmRequest)
 
@@ -227,8 +227,8 @@ class RequestProcessorIntegrationTest(
     @Test
     fun `should store genre after a failed request with the same new genre`() {
         val tooLongPoster = "https://poster/" + "x".repeat(600)
-        val failingFilmRequest = testFilmRequest().copy(genres = setOf("Noir"), poster = tooLongPoster)
-        val filmRequest = testOtherFilmRequest().copy(genres = setOf("Noir"))
+        val failingFilmRequest = testFilm().copy(genres = setOf("Noir"), poster = tooLongPoster)
+        val filmRequest = testOtherFilm().copy(genres = setOf("Noir"))
 
         val failedResponse = exchangePutRequest(failingFilmRequest)
         val response = exchangePutRequest(filmRequest)
@@ -240,10 +240,10 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should keep scores that differ only by type or url`() {
-        val filmRequest = testOtherFilmRequest().copy(scores = setOf(
-            ScoreRequest(0.5, 100, type = "CRITIC", url = "http://critics"),
-            ScoreRequest(0.5, 100, type = "AMATEUR", url = "http://critics"),
-            ScoreRequest(0.5, 100, type = "CRITIC", url = "http://other-critics")))
+        val filmRequest = testOtherFilm().copy(scores = setOf(
+            ScoreData(0.5, 100, type = "CRITIC", url = "http://critics"),
+            ScoreData(0.5, 100, type = "AMATEUR", url = "http://critics"),
+            ScoreData(0.5, 100, type = "CRITIC", url = "http://other-critics")))
 
         exchangePutRequest(filmRequest)
 
@@ -252,8 +252,8 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should keep genres that differ only in letter case`() {
-        val filmRequest = testFilmRequest().copy(genres = setOf("Drama"))
-        val otherFilmRequest = testOtherFilmRequest().copy(genres = setOf("drama"))
+        val filmRequest = testFilm().copy(genres = setOf("Drama"))
+        val otherFilmRequest = testOtherFilm().copy(genres = setOf("drama"))
 
         val response = exchangePutRequest(filmRequest, otherFilmRequest)
 
@@ -263,7 +263,7 @@ class RequestProcessorIntegrationTest(
 
     @Test
     fun `should store titles and genres with 4-byte characters`() {
-        val filmRequest = testOtherFilmRequest().copy(title = "Popcorn 🍿 " + UUID.randomUUID(), genres = setOf("Horror 👻"))
+        val filmRequest = testOtherFilm().copy(title = "Popcorn 🍿 " + UUID.randomUUID(), genres = setOf("Horror 👻"))
 
         val response = exchangePutRequest(filmRequest)
 
@@ -271,7 +271,7 @@ class RequestProcessorIntegrationTest(
         assertThat(executeGetRequest()).containsOnly(filmRequest)
     }
 
-    private fun exchangePutRequest(vararg filmRequests: FilmRequest): ResponseEntity<String> {
+    private fun exchangePutRequest(vararg filmRequests: FilmData): ResponseEntity<String> {
         return restTemplate
             .withBasicAuth("user", "password")
             .exchange("/resources/films", HttpMethod.PUT, HttpEntity(filmRequests), String::class.java)
@@ -284,7 +284,7 @@ class RequestProcessorIntegrationTest(
         scoreTo: Double? = null,
         page: Int = 0,
         pageSize: Int = 100
-    ): Array<FilmRequest> {
+    ): Array<FilmData> {
         val filters = mapOf("yearFrom" to yearFrom, "yearTo" to yearTo, "scoreFrom" to scoreFrom, "scoreTo" to scoreTo)
             .filterValues { it != null }
             .map { (name, value) -> "&$name=$value" }
@@ -292,11 +292,11 @@ class RequestProcessorIntegrationTest(
         val url = "/resources/films?page=$page&pageSize=$pageSize$filters"
         val films = restTemplate
             .withBasicAuth("user", "password")
-            .getForObject(url, Array<FilmRequest>::class.java)
+            .getForObject(url, Array<FilmData>::class.java)
         return checkNotNull(films) { "No response body for GET $url" }
     }
 
-    private fun executePutRequest(vararg filmRequests: FilmRequest) {
+    private fun executePutRequest(vararg filmRequests: FilmData) {
         restTemplate
             .withBasicAuth("user", "password")
             .put("/resources/films", filmRequests)

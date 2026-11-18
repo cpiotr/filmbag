@@ -1,9 +1,9 @@
-package pl.ciruk.filmbag.request
+package pl.ciruk.filmbag.journal
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
-import pl.ciruk.filmbag.boundary.FilmRequest
+import pl.ciruk.filmbag.film.FilmData
 import redis.clients.jedis.RedisClient
 import redis.clients.jedis.params.XAddParams
 import redis.clients.jedis.resps.StreamEntry
@@ -32,7 +32,7 @@ class Journal(
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         .build()
 
-    fun recordAsync(films: List<FilmRequest>) {
+    fun recordAsync(films: List<FilmData>) {
         CompletableFuture
             .runAsync({ record(films) }, taskExecutor)
             .exceptionally {
@@ -41,14 +41,14 @@ class Journal(
             }
     }
 
-    fun record(films: List<FilmRequest>) {
+    fun record(films: List<FilmData>) {
         val entry = mapper.writeValueAsString(JournalEntry(films))
         val id = redisClient.xadd(STREAM_KEY, XAddParams.xAddParams(), mapOf(ENTRY_FIELD to entry))
         logger.info { "Recorded $id with ${films.size} films" }
     }
 
     /** Passes the films of each entry to [store], oldest first. Entries that can't be read or stored are reported. */
-    fun replay(store: (List<FilmRequest>) -> Unit): ReplayResult {
+    fun replay(store: (List<FilmData>) -> Unit): ReplayResult {
         var replayed = 0
         val failed = mutableListOf<String>()
         for (entry in entries()) {
@@ -84,7 +84,7 @@ class Journal(
     }
 }
 
-data class JournalEntry(val films: List<FilmRequest>)
+data class JournalEntry(val films: List<FilmData>)
 
 /** [failed] holds the ids of the entries that could not be read or stored. */
 data class ReplayResult(val replayed: Int, val failed: List<String>)
