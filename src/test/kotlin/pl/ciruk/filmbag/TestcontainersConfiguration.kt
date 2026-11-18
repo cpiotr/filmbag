@@ -19,8 +19,8 @@ class TestcontainersConfiguration {
 
     @Bean
     fun redisProperties(redis: RedisContainer) = DynamicPropertyRegistrar { registry ->
-        registry.add("redis.host") { redis.host }
-        registry.add("redis.port") { redis.getMappedPort(RedisContainer.PORT) }
+        registry.add("filmbag.journal.host") { redis.host }
+        registry.add("filmbag.journal.port") { redis.getMappedPort(RedisContainer.PORT) }
     }
 }
 

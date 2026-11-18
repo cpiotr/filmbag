@@ -32,9 +32,9 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mariadb://db:3306/db
       - SPRING_DATASOURCE_USERNAME=filmbag
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD to the database password}
-      - REDIS_HOST=journal
-      - EXTERNAL_PROVIDER_FILMREQUEST_URL=http://192.168.122.1:8080/resources/suggestions
-      - EXTERNAL_PROVIDER_FILMREQUEST_LIMIT=50
+      - FILMBAG_JOURNAL_HOST=journal
+      # Set FILM_PROVIDER_URL, for example in an .env file next to this one, to import from elsewhere
+      - FILMBAG_PROVIDER_URL=${FILM_PROVIDER_URL:-http://192.168.122.1:8080/resources/suggestions}
       - SPRING_SECURITY_USER_NAME=${FILMBAG_USER:-filmbag}
       - SPRING_SECURITY_USER_PASSWORD=${FILMBAG_PASSWORD:?Set FILMBAG_PASSWORD to the API password}
       - LOGGING_LEVEL_PL_CIRUK=INFO
@@ -48,6 +48,8 @@ services:
         -XX:+PreserveFramePointer
         -Xlog:gc:stdout:time
     mem_limit: 768m
+    # Longer than the 30 s the application waits for imports and journal writes on shutdown
+    stop_grace_period: 40s
     ports:
       - "18080:18080"
     depends_on:

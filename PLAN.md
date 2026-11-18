@@ -342,7 +342,28 @@ Decided 2026-11-18:
   - [Boot testing](https://docs.spring.io/spring-boot/reference/testing/spring-boot-applications.html): a
     top-level `@TestConfiguration` "should not be picked up by scanning".
 
-### 7. [ ] Configuration and operations (Minor)
+### 7. [x] Configuration and operations (Minor)
+> **Done 2026-11-18.**
+> - **Typed settings:** `FilmProviderProperties` (`filmbag.provider.url`, `films-per-import`, checked at
+>   startup) and `JournalProperties` (`filmbag.journal.host`, `port`, `max-connections`). They live beside their
+>   users in `request`, with `ClientConfiguration` holding the Redis and OkHttp clients.
+> - **Removed:** `Connections.kt`, `configurations.kt` and the startup logging of settings. `request` no longer
+>   depends on `config`.
+> - **Local defaults:** `localhost` and user `filmbag`; no private IPs.
+> - **Compose:**
+>   - new variable names;
+>   - the provider URL comes from `${FILM_PROVIDER_URL:-…}`, with `.env` gitignored;
+>   - `stop_grace_period: 40s`.
+> - **README:** a table of the variables.
+> - **Gotcha:** environment variable names drop dashes, so the variable is `FILMBAG_PROVIDER_FILMSPERIMPORT`.
+>   `FilmProviderPropertiesTest` checks that it binds.
+> - **Jedis pool:** the 100 ms idle eviction override is gone.
+> - **Breaking for deployments:** `REDIS_HOST` and `EXTERNAL_PROVIDER_FILMREQUEST_*` are now `FILMBAG_JOURNAL_HOST`
+>   and `FILMBAG_PROVIDER_*`.
+> - **Not done:** `spring-boot-configuration-processor`. For Kotlin it needs kapt, which is in maintenance mode
+>   and slows the build, and its only gain is IDE completion.
+> - **Verified:** smoke test on the compose stack (PUT, journal entry, replay). 64 tests pass.
+
 - **Typed properties:** replace the six `@Value`s with `@Validated @ConfigurationProperties` data classes
   (`filmbag.provider.url: URI`, `filmbag.provider.films-per-import`, `filmbag.redis.host/port`) and add
   `spring-boot-configuration-processor`. Delete `logConfiguration` and `configurations.kt`.

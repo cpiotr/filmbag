@@ -8,17 +8,14 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
-import pl.ciruk.filmbag.config.logConfiguration
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
-import jakarta.annotation.PostConstruct
 import kotlin.math.max
 
 
@@ -29,18 +26,11 @@ class DataLoader(
         private val httpClient: OkHttpClient,
         private val mapper: ObjectMapper,
         private val taskExecutor: TaskExecutor,
-        @Value("\${external.provider.filmrequest.url}") private val url: String,
-        @Value("\${external.provider.filmrequest.limit:50}") private val limit: Int) {
+        private val provider: FilmProviderProperties) {
     private val logger = KotlinLogging.logger {}
 
     /** Cancellation flag of the running import, or null when no import runs. */
     private val runningImportCancelled = AtomicReference<AtomicBoolean?>(null)
-
-    @PostConstruct
-    fun logConfiguration() {
-        logger.logConfiguration("Film provider URL", url)
-        logger.logConfiguration("Film provider limit", limit)
-    }
 
     /** @throws ImportAlreadyRunningException when another import has not finished yet */
     fun importAsync(offset: Int = 0): CompletableFuture<Int> {
@@ -65,7 +55,7 @@ class DataLoader(
     }
 
     private fun importPages(offset: Int, cancelled: AtomicBoolean): Int {
-        logger.info("Loading data from: $url")
+        logger.info("Loading data from: ${provider.url}")
 
         val films = generateSequenceOfFilms(offset + 1, cancelled)
         val processedPagesCount = recordAndStoreUpToLimit(films)
@@ -87,7 +77,7 @@ class DataLoader(
             numberOfResults += filmBatch.size
             logger.info { "Fetched ${filmBatch.size} films. Total number: $numberOfResults" }
             recordAndStore(filmBatch)
-            if (numberOfResults >= limit) {
+            if (numberOfResults >= provider.filmsPerImport) {
                 return lastPage
             }
         }
@@ -108,7 +98,7 @@ class DataLoader(
     private fun fetchFilmsFromPage(index: Int): List<FilmRequest> {
         logger.info { "Fetch films from $index page" }
 
-        val currentUrl = url.toHttpUrl()
+        val currentUrl = provider.url.toString().toHttpUrl()
                 .newBuilder()
                 .addPathSegment("$index")
                 .build()

@@ -17,6 +17,7 @@ import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.testFilmRequest
 import java.io.IOException
 import java.net.InetSocketAddress
+import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
@@ -216,7 +217,8 @@ class DataLoaderTest {
         taskExecutor: TaskExecutor = SyncTaskExecutor()
     ): DataLoader {
         return DataLoader(
-            requestProcessor, journal, OkHttpClient(), jacksonObjectMapper(), taskExecutor, providerUrl, filmProviderLimit)
+            requestProcessor, journal, OkHttpClient(), jacksonObjectMapper(), taskExecutor,
+            FilmProviderProperties(URI(providerUrl), filmProviderLimit))
     }
 
     private fun startProvider(handler: (HttpExchange) -> Unit): HttpServer {

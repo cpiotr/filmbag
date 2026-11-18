@@ -32,8 +32,18 @@ which survive `docker compose down`. The database port is not published; use
 The application applies database migrations itself at startup. Health checks need no credentials:
 `http://localhost:18080/resources/actuator/health` (also `/liveness` and `/readiness`).
 
-The image is configured with Spring environment variables (for example `SPRING_DATASOURCE_URL`, `REDIS_HOST`,
-`EXTERNAL_PROVIDER_FILMREQUEST_URL`) and JVM options in `JDK_JAVA_OPTIONS`; see `docker-compose.yml`.
+The image is configured with environment variables; see `docker-compose.yml` and `application.properties`:
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `SPRING_DATASOURCE_URL`, `_USERNAME`, `_PASSWORD` | Database connection | `jdbc:mariadb://localhost:3306/db`, `filmbag` |
+| `SPRING_SECURITY_USER_NAME`, `_PASSWORD` | API credentials | |
+| `FILMBAG_JOURNAL_HOST`, `FILMBAG_JOURNAL_PORT` | Redis holding the journal | `localhost`, `6379` |
+| `FILMBAG_PROVIDER_URL` | Film provider for imports; page `n` is read from `<url>/<n>` | `http://localhost:8080/resources/suggestions` |
+| `FILMBAG_PROVIDER_FILMSPERIMPORT` | An import stops after this many films | `50` |
+| `JDK_JAVA_OPTIONS` | JVM options | `-XX:MaxRAMPercentage=75` |
+
+With compose, set `FILM_PROVIDER_URL` in an `.env` file next to `docker-compose.yml` to change the provider.
 
 ## Backing up
 ```

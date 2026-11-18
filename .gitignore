@@ -1,4 +1,6 @@
 **/application-dev.properties
+# Site settings for docker compose
+.env
 classes/
 build/
 .idea/
