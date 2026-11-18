@@ -46,14 +46,12 @@ dependencies {
 
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
     implementation("com.squareup.okhttp3:okhttp:$okHttpVersion")
-
-    implementation("io.protostuff:protostuff-runtime:$protostuffVersion")
-    implementation("io.protostuff:protostuff-core:$protostuffVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.junit.jupiter:junit-jupiter-api")

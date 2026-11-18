@@ -91,3 +91,19 @@ published the database port. Moving such an install to the current file, with th
    docker compose exec journal redis-cli dbsize
    ```
    Once this works, delete the old volumes with `docker volume rm "$old_db" "$old_journal"`.
+
+## The journal
+Every stored list of films is also recorded, after it is stored, as a JSON entry in the Redis stream
+`filmbag:journal`. `POST /resources/journal/replay` stores all entries again, oldest first, and answers with the
+number replayed and the ids of entries that failed. `POST /resources/journal/snapshot` records every film in the
+database.
+
+Versions before the stream kept entries as binary protostuff values under 8-byte keys, which current versions
+don't read. After upgrading from such a version, rebuild the journal from the database once:
+```
+docker compose exec journal redis-cli save
+docker compose exec journal cp /data/dump.rdb /data/journal-before-stream.rdb
+docker compose exec journal redis-cli flushdb
+curl -u "filmbag:$FILMBAG_PASSWORD" -X POST http://localhost:18080/resources/journal/snapshot
+```
+`journal-before-stream.rdb` stays in the `journal-data` volume in case the old entries are needed.

@@ -5,85 +5,86 @@ import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import pl.ciruk.filmbag.boundary.FilmRequest
 import redis.clients.jedis.RedisClient
-import redis.clients.jedis.params.ScanParams
-import java.nio.ByteBuffer
-import java.time.Instant
+import redis.clients.jedis.params.XAddParams
+import redis.clients.jedis.resps.StreamEntry
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.cfg.DateTimeFeature
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.kotlinModule
+import tools.jackson.module.kotlin.readValue
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
 
+/**
+ * Every stored list of films, in the order they were stored, so that the database can be rebuilt from it.
+ * Entries are JSON in a Redis stream, which numbers them in order.
+ */
 @Service
 class Journal(
     private val redisClient: RedisClient,
-    private val journalSerializer: JournalSerializer,
     private val taskExecutor: TaskExecutor
 ) {
     private val logger = KotlinLogging.logger {}
-    private val keyGenerator = AtomicLong(TimeUnit.MILLISECONDS.toNanos(Instant.now().toEpochMilli()))
+
+    // Its own mapper, so that changes to the API's JSON settings never change how entries are written or read
+    private val mapper = JsonMapper.builder()
+        .addModule(kotlinModule())
+        .disable(DateTimeFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE)
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .build()
 
     fun recordAsync(films: List<FilmRequest>) {
-        // The key is taken now, so replay keeps the order of requests even if writes finish out of order
-        val key = keyGenerator.incrementAndGet()
         CompletableFuture
-            .runAsync({ record(key, journalSerializer.serialize(films)) }, taskExecutor)
+            .runAsync({ record(films) }, taskExecutor)
             .exceptionally {
-                logger.error(it) { "Cannot record request with ${films.size} films" }
+                logger.error(it) { "Cannot record ${films.size} films" }
                 null
             }
     }
 
     fun record(films: List<FilmRequest>) {
-        val serializedRequest = journalSerializer.serialize(films)
-        val key = keyGenerator.incrementAndGet()
+        val entry = mapper.writeValueAsString(JournalEntry(films))
+        val id = redisClient.xadd(STREAM_KEY, XAddParams.xAddParams(), mapOf(ENTRY_FIELD to entry))
+        logger.info { "Recorded $id with ${films.size} films" }
+    }
 
-        record(key, serializedRequest)
+    /** Passes the films of each entry to [store], oldest first. Entries that can't be read or stored are reported. */
+    fun replay(store: (List<FilmRequest>) -> Unit): ReplayResult {
+        var replayed = 0
+        val failed = mutableListOf<String>()
+        for (entry in entries()) {
+            try {
+                store(mapper.readValue<JournalEntry>(entry.fields.getValue(ENTRY_FIELD)).films)
+                replayed++
+            } catch (e: Exception) {
+                logger.error(e) { "Cannot replay journal entry ${entry.id}" }
+                failed += entry.id.toString()
+            }
+        }
+        logger.info { "Replayed $replayed journal entries, ${failed.size} failed" }
+        return ReplayResult(replayed, failed)
     }
 
     fun deleteAll() {
-        val keys = findAllKeysSerialized()
-        keys.forEach { key -> redisClient.del(key) }
-        logger.info { "Deleted ${keys.size} entries" }
+        redisClient.del(STREAM_KEY)
     }
 
-    private fun record(key: Long, serializedRequest: ByteArray) {
-        redisClient.set(key.toBytes(), serializedRequest)
-        logger.info("Record (key={}, size={})", key, serializedRequest.size)
-    }
-
-    fun replay(): Sequence<List<FilmRequest>> {
-        val keys = findAllKeysSerialized()
-        if (keys.isEmpty()) {
-            logger.info { "Nothing to replay. Empty journal" }
-            return emptySequence()
-        }
-
-        logger.info("Replaying ${keys.size} requests")
-        return redisClient.mget(*keys)
-            .asSequence()
-            .map(journalSerializer::deserialize)
-    }
-
-    // SCAN walks the keyspace in steps instead of blocking Redis like KEYS, but may return a key twice
-    private fun findAllKeys(): List<Long> {
-        val keys = mutableSetOf<Long>()
-        var cursor = ScanParams.SCAN_POINTER_START_BINARY
+    private fun entries(): Sequence<StreamEntry> = sequence {
+        var start = "-"
         do {
-            val page = redisClient.scan(cursor, ScanParams().count(1000))
-            page.result
-                .filter { bytes -> bytes.size == Long.SIZE_BYTES }
-                .mapTo(keys) { bytes -> bytes.toLong() }
-            cursor = page.cursorAsBytes
-        } while (!page.isCompleteIteration)
-        return keys.sorted()
+            val page = redisClient.xrange(STREAM_KEY, start, "+", PAGE_SIZE)
+            yieldAll(page)
+            page.lastOrNull()?.let { start = "(${it.id}" }
+        } while (page.size == PAGE_SIZE)
     }
 
-    private fun findAllKeysSerialized(): Array<ByteArray> {
-        return findAllKeys()
-            .map { long -> long.toBytes() }
-            .toTypedArray()
+    companion object {
+        const val STREAM_KEY = "filmbag:journal"
+        private const val ENTRY_FIELD = "entry"
+        private const val PAGE_SIZE = 100
     }
 }
 
-private fun Long.toBytes(): ByteArray = ByteBuffer.allocate(Long.SIZE_BYTES).putLong(this).array()
+data class JournalEntry(val films: List<FilmRequest>)
 
-private fun ByteArray.toLong(): Long = ByteBuffer.wrap(this).long
+/** [failed] holds the ids of the entries that could not be read or stored. */
+data class ReplayResult(val replayed: Int, val failed: List<String>)

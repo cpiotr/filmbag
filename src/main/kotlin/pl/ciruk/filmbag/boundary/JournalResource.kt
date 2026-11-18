@@ -1,10 +1,10 @@
 package pl.ciruk.filmbag.boundary
 
-import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.ciruk.filmbag.film.FilmService
 import pl.ciruk.filmbag.request.Journal
+import pl.ciruk.filmbag.request.ReplayResult
 import pl.ciruk.filmbag.request.RequestProcessor
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
@@ -19,15 +19,11 @@ class JournalResource(
     private val journal: Journal,
     private val filmService: FilmService
 ) {
-    private val logger = KotlinLogging.logger {}
-
     @POST
     @Path("/replay")
     @Produces(MediaType.APPLICATION_JSON)
-    fun replay(): Response {
-        journal.replay()
-            .forEach { safeStoreAll(it) }
-        return Response.accepted().build()
+    fun replay(): ReplayResult {
+        return journal.replay(requestProcessor::storeAll)
     }
 
     @POST
@@ -43,13 +39,5 @@ class JournalResource(
             page++
         } while (pageOfFilms.size == size)
         return Response.accepted(mapOf(Pair("journalEntries", page))).build()
-    }
-
-    private fun safeStoreAll(it: List<FilmRequest>) {
-        try {
-            requestProcessor.storeAll(it)
-        } catch (e: Exception) {
-            logger.error(e) { "Could not store list of films: $it" }
-        }
     }
 }

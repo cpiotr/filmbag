@@ -51,7 +51,6 @@ class FilmWriteResource(
 ) {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
-    @Transactional
     fun storeOrUpdateScores(filmRequests: List<FilmRequest>) {
         val problems = filmRequests.mapIndexedNotNull { index, filmRequest ->
             filmRequest.missingRequiredFields()
@@ -63,8 +62,8 @@ class FilmWriteResource(
         }
 
         logger.info { "Store ${filmRequests.size} films, if missing" }
-        journal.recordAsync(filmRequests)
         requestProcessor.storeAll(filmRequests)
+        journal.recordAsync(filmRequests)
     }
 }
 

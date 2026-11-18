@@ -95,8 +95,8 @@ class DataLoader(
     }
 
     private fun recordAndStore(filmRequests: List<FilmRequest>) {
-        journal.record(filmRequests)
         requestProcessor.storeAll(filmRequests)
+        journal.record(filmRequests)
     }
 
     private fun generateSequenceOfFilms(offset: Int, cancelled: AtomicBoolean): Sequence<List<FilmRequest>> {

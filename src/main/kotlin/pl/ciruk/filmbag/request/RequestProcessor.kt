@@ -1,8 +1,10 @@
 package pl.ciruk.filmbag.request
 
 import mu.KotlinLogging
+import org.hibernate.exception.ConstraintViolationException
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import pl.ciruk.filmbag.boundary.FilmRequest
 import pl.ciruk.filmbag.boundary.ScoreRequest
 import pl.ciruk.filmbag.film.Film
@@ -11,8 +13,11 @@ import pl.ciruk.filmbag.film.GenreService
 import pl.ciruk.filmbag.film.ScoreType
 
 @Service
-@Transactional
-class RequestProcessor(private val genreService: GenreService, private val filmService: FilmService) {
+class RequestProcessor(
+    private val genreService: GenreService,
+    private val filmService: FilmService,
+    private val transactionTemplate: TransactionTemplate
+) {
     private val logger = KotlinLogging.logger {}
 
     fun storeAll(filmRequests: List<FilmRequest>) {
@@ -21,6 +26,21 @@ class RequestProcessor(private val genreService: GenreService, private val filmS
             logger.warn { "Skipping film <${it.title}> missing ${it.missingRequiredFields().joinToString()}" }
         }
 
+        try {
+            transactionTemplate.executeWithoutResult { store(validRequests) }
+        } catch (e: DataIntegrityViolationException) {
+            if (!e.isUniqueViolation()) throw e
+            // Another request stored one of these films or genres after this one looked for them.
+            // A new transaction finds them and updates them instead.
+            logger.info { "Storing again after a concurrent insert: ${e.message}" }
+            transactionTemplate.executeWithoutResult { store(validRequests) }
+        }
+    }
+
+    private fun DataIntegrityViolationException.isUniqueViolation() =
+        (cause as? ConstraintViolationException)?.kind == ConstraintViolationException.ConstraintKind.UNIQUE
+
+    private fun store(validRequests: List<FilmRequest>) {
         val genresFromRequests = validRequests.flatMap { it.genres }.toSet()
         genreService.merge(genresFromRequests)
 

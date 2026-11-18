@@ -146,7 +146,28 @@ Decided 2026-11-18:
     be auto-configured with any beans that implement `JavaMigration`".
   - The repo's V013 is the precedent.
 
-### 3. [ ] Make the journal trustworthy (Major)
+### 3. [x] Make the journal trustworthy (Major)
+> **Done 2026-11-18.**
+> - **Format:** JSON entries `{"films": [...]}` in the Redis stream `filmbag:journal`, written with the journal's
+>   own Jackson 3 mapper. Unknown properties are ignored, and offsets are kept.
+> - **Recording:** PUT and import record only after `storeAll` has committed; unit tests check that nothing is
+>   recorded when storing fails. The write resource has no `@Transactional` any more.
+> - **Replay:** returns 200 with `{"replayed", "failed": [entry ids]}`.
+> - **Retry:** `RequestProcessor` owns the transaction (`TransactionTemplate`) and retries once on a unique
+>   violation, as reported by Hibernate's `ConstraintViolationException.kind == UNIQUE`. Spring translates it to
+>   a plain `DataIntegrityViolationException`, not `DuplicateKeyException`. `RequestProcessorRetryTest` reproduces
+>   the race.
+> - **Dependencies:** protostuff removed; added `tools.jackson.module:jackson-module-kotlin` (BOM-managed), which
+>   step 10 needs too.
+> - **README:** documents the journal and the one-time rebuild for D3 (RDB copy, `FLUSHDB`, snapshot).
+> - **Departures from the plan:**
+>   - No separate `JournalFilm` type and no version field. JSON by property name already survives fields being
+>     added, and the type rename in step 8 doesn't change property names. Add a version only when the format
+>     really changes.
+>   - The read-only `@Transactional` stays on `findAll` and `snapshot`: entities are mapped to DTOs in the
+>     resource, which needs the open session. These go with steps 5d and 10.
+> - **Tests:** 58 pass.
+
 - **Files:** `request/Journal.kt`, `request/JournalSerializer.kt`, `boundary/FilmResource.kt:54,66-67`,
   `request/DataLoader.kt:97-100`, `boundary/JournalResource.kt`
 - **Problems:**

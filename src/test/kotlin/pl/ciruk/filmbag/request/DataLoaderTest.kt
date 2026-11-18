@@ -128,6 +128,20 @@ class DataLoaderTest {
     }
 
     @Test
+    fun `should record only films that were stored`() {
+        val dataLoader = createDataLoader(10)
+        val storedFilms = listOf(testFilmRequest(year = 2010))
+        val failingFilms = listOf(testFilmRequest(year = 2011))
+        doThrow(IllegalStateException("Storing failed")).`when`(requestProcessor).storeAll(failingFilms)
+
+        assertThatThrownBy { dataLoader.recordAndStoreUpToLimit(sequenceOf(storedFilms, failingFilms)) }
+            .hasMessage("Storing failed")
+
+        verify(journal).record(storedFilms)
+        verifyNoMoreInteractions(journal)
+    }
+
+    @Test
     fun `should indicate no processed pages`() {
         val dataLoader = createDataLoader(10)
 
